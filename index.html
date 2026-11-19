@@ -1,0 +1,2160 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>1001－1900</title>
+<style>
+  * {
+    box-sizing: border-box;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    margin: 0;
+    padding: 0;
+    background: #1e1b4b;
+    color: #f8fafc;
+    font-family: "UD デジタル 教科書体 NK-R", "Hiragino Maru Gothic ProN", "Meiryo", sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    overflow: hidden;
+  }
+  #hud {
+    width: 100%;
+    max-width: 820px;
+    background: linear-gradient(90deg, #312e81, #1e3a8a);
+    border-bottom: 2px solid #6366f1;
+    padding: 8px 12px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.88rem;
+    font-weight: bold;
+    z-index: 10;
+  }
+  .hud-item {
+    background: rgba(15, 23, 42, 0.55);
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(148, 163, 184, 0.3);
+  }
+  #holding-bar {
+    width: 100%;
+    max-width: 820px;
+    background: #0f172a;
+    padding: 6px 14px;
+    text-align: center;
+    font-size: 0.94rem;
+    border-bottom: 1px solid #334155;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+  }
+  #holding-word {
+    color: #fde047;
+    font-weight: bold;
+    font-size: 1.05rem;
+  }
+  #game-wrap {
+    position: relative;
+    width: 100%;
+    max-width: 820px;
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 6px;
+  }
+  canvas {
+    background: #14532d;
+    border: 3px solid #86efac;
+    border-radius: 14px;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55);
+    touch-action: none;
+    display: block;
+    max-width: 100%;
+    max-height: 100%;
+    transition: border-color 0.3s;
+  }
+  canvas.last-five {
+    border-color: #ef4444;
+    box-shadow: 0 0 26px rgba(239, 68, 68, 0.6);
+  }
+  .overlay {
+    position: absolute;
+    inset: 6px;
+    background: rgba(15, 23, 42, 0.94);
+    border-radius: 14px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 14px;
+    text-align: center;
+    z-index: 20;
+    overflow-y: auto;
+  }
+  .overlay.hidden {
+    display: none;
+  }
+  h1 {
+    margin: 0 0 6px;
+    font-size: 1.35rem;
+    color: #fde047;
+    text-shadow: 0 2px 6px rgba(0,0,0,0.6);
+  }
+  .sub {
+    font-size: 0.83rem;
+    color: #cbd5e1;
+    line-height: 1.45;
+    margin-bottom: 8px;
+    max-width: 580px;
+  }
+  .opt-group {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+    margin-bottom: 8px;
+    max-width: 680px;
+  }
+  .opt-btn {
+    background: #334155;
+    color: #f8fafc;
+    border: 2px solid #64748b;
+    border-radius: 999px;
+    padding: 5px 12px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .opt-btn img.char-thumb {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.15);
+  }
+  .opt-btn.highlight {
+    border-color: #f59e0b;
+  }
+  .opt-btn.active {
+    background: #2563eb;
+    border-color: #93c5fd;
+    color: #fff;
+  }
+  .start-btn {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: #1e293b;
+    border: none;
+    border-radius: 999px;
+    padding: 11px 34px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 4px 0 #92400e;
+    margin-top: 4px;
+  }
+  .start-btn:active {
+    transform: translateY(3px);
+    box-shadow: 0 1px 0 #92400e;
+  }
+  #miss-box {
+    max-height: 140px;
+    overflow-y: auto;
+    background: #1e293b;
+    border: 1px solid #475569;
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin: 10px 0;
+    font-size: 0.85rem;
+    text-align: left;
+    width: 100%;
+    max-width: 460px;
+  }
+</style>
+</head>
+<body>
+
+<div id="hud">
+  <div class="hud-item"><span id="hud-char-icon">🐱</span> ライフ: <span id="hud-life">❤️❤️❤️</span></div>
+  <div class="hud-item">💖 復活まで: <span id="hud-heal" style="color:#f472b6;">0 / 5</span></div>
+  <div class="hud-item">✨ クリア: <span id="hud-cleared" style="color:#4ade80;">0</span> / <span id="hud-total">50</span></div>
+  <div class="hud-item">🏆 スコア: <span id="hud-score" style="color:#fde047;">0</span></div>
+</div>
+
+<div id="holding-bar">
+  <span>🐾 キャッチ中：</span>
+  <span id="holding-word">（まだ持っていません — 青い英単語に触れよう！）</span>
+</div>
+
+<div id="game-wrap">
+  <canvas id="gameCanvas" width="800" height="540"></canvas>
+
+  <!-- スタート画面 -->
+  <div class="overlay" id="startOverlay">
+    <h1>🐾 1001－1900</h1>
+    <p class="sub">
+      英単語 <b>1001－1900（全900語）</b>を品詞別に収録！<br>
+      ① 画面に並ぶ<b>英単語と日本語</b>をマッチングしよう！<br>
+      ② 別の英単語に触れたら持ち替えになるだけ！<b>違う日本語に触れるとライフ -1</b>！<br>
+      ③ <b>5個正解でライフ1つ復活💖</b>！<b>ラスト5問はスピードアップ＆ボス出現👑</b><br>
+      <span style="color:#93c5fd; font-size:0.78rem;">操作：矢印キー(↑↓←→) / WASD / 画面タップ＆ドラッグ</span>
+    </p>
+
+    <div style="font-size:0.78rem; color:#fde047; margin-bottom:3px; font-weight:bold;">▼ キャラクターを選択</div>
+    <div class="opt-group" id="charGroup">
+      <button class="opt-btn active" onclick="selectChar('cat', this)">
+        <img class="char-thumb" src="https://raw.githubusercontent.com/shojinottenglish/chara-me-jin/556ec254176e200ff01382c681e74aef4d14c081/Cat_as_character_6a107148.jpg%20(1)%20(1).png" alt="ネコ">
+        🐱 ネコキャラ
+      </button>
+      <button class="opt-btn" onclick="selectChar('chara2', this)">
+        <img class="char-thumb" src="https://raw.githubusercontent.com/shojinottenglish/chara-me-jin/main/Character_facing_forward_smiling_af9398ba%20(1).png" alt="キャラ２">
+        🧑 キャラ２（スマイル）
+      </button>
+    </div>
+
+    <div style="font-size:0.78rem; color:#fde047; margin-bottom:3px; font-weight:bold;">▼ 品詞・出題コースを選択</div>
+    <div class="opt-group" id="lessonGroup">
+      <button class="opt-btn highlight active" onclick="selectLesson('test50', this)">🔥 全品詞ミックス 50問テスト</button>
+      <button class="opt-btn" onclick="selectLesson('test100', this)">⚡ 全品詞ミックス 100問テスト</button>
+      <button class="opt-btn" onclick="selectLesson('verb', this)">📘 動詞すべて (338語)</button>
+      <button class="opt-btn" onclick="selectLesson('noun', this)">📗 名詞すべて (356語)</button>
+      <button class="opt-btn" onclick="selectLesson('adj', this)">📙 形容詞・その他 (206語)</button>
+      <button class="opt-btn" onclick="selectLesson('random25', this)">🎲 全品詞ランダム (25問)</button>
+      <button class="opt-btn" onclick="selectLesson('all900', this)">👑 1001－1900 全900語 完全制覇！</button>
+    </div>
+
+    <div style="display:flex; flex-wrap:wrap; justify-content:center; gap:14px; margin-bottom:4px;">
+      <div>
+        <div style="font-size:0.78rem; color:#fde047; margin-bottom:3px; font-weight:bold;">▼ 同時表示する英単語数</div>
+        <div class="opt-group" id="pairCountGroup" style="margin-bottom:4px;">
+          <button class="opt-btn" onclick="selectPairCount(4, this)">4つ</button>
+          <button class="opt-btn" onclick="selectPairCount(6, this)">6つ</button>
+          <button class="opt-btn active" onclick="selectPairCount(8, this)">8つ</button>
+        </div>
+      </div>
+
+      <div>
+        <div style="font-size:0.78rem; color:#fde047; margin-bottom:3px; font-weight:bold;">▼ お化けのスピード</div>
+        <div class="opt-group" id="speedGroup" style="margin-bottom:4px;">
+          <button class="opt-btn active" onclick="selectGhostSpeed(1.15, this)">ゆっくり</button>
+          <button class="opt-btn" onclick="selectGhostSpeed(1.65, this)">ふつう</button>
+          <button class="opt-btn" onclick="selectGhostSpeed(2.2, this)">はやい</button>
+        </div>
+      </div>
+    </div>
+
+    <button class="start-btn" onclick="startGame()">テストスタート！</button>
+  </div>
+
+  <!-- リザルト画面 -->
+  <div class="overlay hidden" id="endOverlay">
+    <h1 id="endTitle">ゲームクリア！</h1>
+    <p class="sub" id="endMsg" style="margin-bottom:6px;"></p>
+    <div id="miss-box" class="hidden"></div>
+    <button class="start-btn" onclick="showStartScreen()">もう一度あそぶ</button>
+  </div>
+</div>
+
+<script>
+// ==========================================
+// キャラクター画像のプリロード
+// ==========================================
+const CHAR_IMAGES = {
+  cat: new Image(),
+  chara2: new Image()
+};
+CHAR_IMAGES.cat.src = "https://raw.githubusercontent.com/shojinottenglish/chara-me-jin/556ec254176e200ff01382c681e74aef4d14c081/Cat_as_character_6a107148.jpg%20(1)%20(1).png";
+CHAR_IMAGES.chara2.src = "https://raw.githubusercontent.com/shojinottenglish/chara-me-jin/main/Character_facing_forward_smiling_af9398ba%20(1).png";
+
+// ==========================================
+// 1001－1900 品詞別 全900語データ（日本語訳は1つに厳選）
+// ==========================================
+const WORD_DATA = [
+  // --- 動詞 (338語) ---
+  { pos: "verb", en: "negotiate", jp: "交渉する" },
+  { pos: "verb", en: "grasp", jp: "を把握する" },
+  { pos: "verb", en: "donate", jp: "を寄付する" },
+  { pos: "verb", en: "arrest", jp: "を逮捕する" },
+  { pos: "verb", en: "crack", jp: "ひびが入る" },
+  { pos: "verb", en: "tap", jp: "を軽くたたく" },
+  { pos: "verb", en: "split", jp: "を分割する" },
+  { pos: "verb", en: "forecast", jp: "を予測する" },
+  { pos: "verb", en: "exclude", jp: "を除外する" },
+  { pos: "verb", en: "overlook", jp: "を見落とす" },
+  { pos: "verb", en: "burst", jp: "破裂する" },
+  { pos: "verb", en: "heal", jp: "を治す" },
+  { pos: "verb", en: "forbid", jp: "を禁じる" },
+  { pos: "verb", en: "install", jp: "を設置する" },
+  { pos: "verb", en: "diminish", jp: "を減らす" },
+  { pos: "verb", en: "cite", jp: "を引き合いに出す" },
+  { pos: "verb", en: "quote", jp: "を引用する" },
+  { pos: "verb", en: "dispute", jp: "に異議を唱える" },
+  { pos: "verb", en: "highlight", jp: "を強調する" },
+  { pos: "verb", en: "distract", jp: "をそらす" },
+  { pos: "verb", en: "cheat", jp: "をだます" },
+  { pos: "verb", en: "foster", jp: "をはぐくむ" },
+  { pos: "verb", en: "obey", jp: "に従う" },
+  { pos: "verb", en: "bend", jp: "を曲げる" },
+  { pos: "verb", en: "deprive", jp: "から奪う" },
+  { pos: "verb", en: "govern", jp: "を統治する" },
+  { pos: "verb", en: "log", jp: "を記録する" },
+  { pos: "verb", en: "transmit", jp: "を伝える" },
+  { pos: "verb", en: "bully", jp: "をいじめる" },
+  { pos: "verb", en: "leap", jp: "跳ぶ" },
+  { pos: "verb", en: "astonish", jp: "を驚かす" },
+  { pos: "verb", en: "thrill", jp: "をぞくぞくさせる" },
+  { pos: "verb", en: "nod", jp: "うなずく" },
+  { pos: "verb", en: "bow", jp: "おじぎする" },
+  { pos: "verb", en: "blend", jp: "を混ぜる" },
+  { pos: "verb", en: "complicate", jp: "を複雑にする" },
+  { pos: "verb", en: "pitch", jp: "を投げる" },
+  { pos: "verb", en: "persist", jp: "続く" },
+  { pos: "verb", en: "dedicate", jp: "をささげる" },
+  { pos: "verb", en: "equip", jp: "に備えつける" },
+  { pos: "verb", en: "proceed", jp: "進行する" },
+  { pos: "verb", en: "orient", jp: "を慣らす" },
+  { pos: "verb", en: "surf", jp: "を見て回る" },
+  { pos: "verb", en: "filter", jp: "をろ過する" },
+  { pos: "verb", en: "bind", jp: "を縛る" },
+  { pos: "verb", en: "resort", jp: "に頼る" },
+  { pos: "verb", en: "reinforce", jp: "を強化する" },
+  { pos: "verb", en: "accumulate", jp: "を蓄積する" },
+  { pos: "verb", en: "bet", jp: "と確信する" },
+  { pos: "verb", en: "advocate", jp: "を主張する" },
+  { pos: "verb", en: "constitute", jp: "を構成する" },
+  { pos: "verb", en: "undertake", jp: "を引き受ける" },
+  { pos: "verb", en: "grip", jp: "を握る" },
+  { pos: "verb", en: "dismiss", jp: "を退ける" },
+  { pos: "verb", en: "fade", jp: "薄れる" },
+  { pos: "verb", en: "conceal", jp: "を隠す" },
+  { pos: "verb", en: "chew", jp: "をかむ" },
+  { pos: "verb", en: "swallow", jp: "を飲み込む" },
+  { pos: "verb", en: "seal", jp: "を密閉する" },
+  { pos: "verb", en: "migrate", jp: "移住する" },
+  { pos: "verb", en: "exaggerate", jp: "を誇張する" },
+  { pos: "verb", en: "accuse", jp: "を非難する" },
+  { pos: "verb", en: "vanish", jp: "消える" },
+  { pos: "verb", en: "polish", jp: "を磨く" },
+  { pos: "verb", en: "wipe", jp: "を拭く" },
+  { pos: "verb", en: "sweep", jp: "を掃く" },
+  { pos: "verb", en: "mislead", jp: "を誤解させる" },
+  { pos: "verb", en: "spoil", jp: "を台無しにする" },
+  { pos: "verb", en: "compound", jp: "を悪化させる" },
+  { pos: "verb", en: "explode", jp: "爆発する" },
+  { pos: "verb", en: "disgust", jp: "をむかつかせる" },
+  { pos: "verb", en: "commute", jp: "通勤する" },
+  { pos: "verb", en: "decorate", jp: "を装飾する" },
+  { pos: "verb", en: "postpone", jp: "を延期する" },
+  { pos: "verb", en: "cease", jp: "をやめる" },
+  { pos: "verb", en: "compromise", jp: "妥協する" },
+  { pos: "verb", en: "elect", jp: "を選出する" },
+  { pos: "verb", en: "extract", jp: "を取り出す" },
+  { pos: "verb", en: "inherit", jp: "を受け継ぐ" },
+  { pos: "verb", en: "rear", jp: "を育てる" },
+  { pos: "verb", en: "infer", jp: "を推論する" },
+  { pos: "verb", en: "esteem", jp: "を尊敬する" },
+  { pos: "verb", en: "tackle", jp: "に取り組む" },
+  { pos: "verb", en: "venture", jp: "危険を冒して進む" },
+  { pos: "verb", en: "accelerate", jp: "を加速させる" },
+  { pos: "verb", en: "accustom", jp: "を慣れさせる" },
+  { pos: "verb", en: "amuse", jp: "を楽しませる" },
+  { pos: "verb", en: "flourish", jp: "繁栄する" },
+  { pos: "verb", en: "thrive", jp: "繁栄する" },
+  { pos: "verb", en: "nurture", jp: "をはぐくむ" },
+  { pos: "verb", en: "click", jp: "をクリックする" },
+  { pos: "verb", en: "spin", jp: "回転する" },
+  { pos: "verb", en: "clip", jp: "を切り抜く" },
+  { pos: "verb", en: "drag", jp: "を引きずる" },
+  { pos: "verb", en: "cast", jp: "を投じる" },
+  { pos: "verb", en: "scatter", jp: "をまき散らす" },
+  { pos: "verb", en: "tempt", jp: "を引きつける" },
+  { pos: "verb", en: "withdraw", jp: "を引き出す" },
+  { pos: "verb", en: "yawn", jp: "あくびをする" },
+  { pos: "verb", en: "blink", jp: "まばたきする" },
+  { pos: "verb", en: "dye", jp: "を染める" },
+  { pos: "verb", en: "spill", jp: "をこぼす" },
+  { pos: "verb", en: "irritate", jp: "をいらいらさせる" },
+  { pos: "verb", en: "insult", jp: "を侮辱する" },
+  { pos: "verb", en: "enforce", jp: "を施行する" },
+  { pos: "verb", en: "rob", jp: "から奪う" },
+  { pos: "verb", en: "drain", jp: "を流出させる" },
+  { pos: "verb", en: "suspend", jp: "を一時中断する" },
+  { pos: "verb", en: "drift", jp: "漂う" },
+  { pos: "verb", en: "forgive", jp: "を許す" },
+  { pos: "verb", en: "revise", jp: "を修正する" },
+  { pos: "verb", en: "recruit", jp: "を募る" },
+  { pos: "verb", en: "twist", jp: "をねじる" },
+  { pos: "verb", en: "crush", jp: "を押しつぶす" },
+  { pos: "verb", en: "pin", jp: "をピンで留める" },
+  { pos: "verb", en: "uncover", jp: "を暴く" },
+  { pos: "verb", en: "exploit", jp: "を活用する" },
+  { pos: "verb", en: "implement", jp: "を実行する" },
+  { pos: "verb", en: "integrate", jp: "を統合する" },
+  { pos: "verb", en: "incorporate", jp: "を取り入れる" },
+  { pos: "verb", en: "assure", jp: "を保証する" },
+  { pos: "verb", en: "precede", jp: "に先行する" },
+  { pos: "verb", en: "revive", jp: "を復活させる" },
+  { pos: "verb", en: "compel", jp: "に強いる" },
+  { pos: "verb", en: "blossom", jp: "花が咲く" },
+  { pos: "verb", en: "terrify", jp: "を怖がらせる" },
+  { pos: "verb", en: "violate", jp: "に違反する" },
+  { pos: "verb", en: "suppress", jp: "を抑える" },
+  { pos: "verb", en: "deceive", jp: "をだます" },
+  { pos: "verb", en: "manipulate", jp: "を巧みに操る" },
+  { pos: "verb", en: "starve", jp: "飢える" },
+  { pos: "verb", en: "flee", jp: "から逃げる" },
+  { pos: "verb", en: "whisper", jp: "ささやく" },
+  { pos: "verb", en: "yell", jp: "叫ぶ" },
+  { pos: "verb", en: "deposit", jp: "を預ける" },
+  { pos: "verb", en: "confine", jp: "を限定する" },
+  { pos: "verb", en: "swing", jp: "を揺らす" },
+  { pos: "verb", en: "prolong", jp: "を長引かせる" },
+  { pos: "verb", en: "depict", jp: "を描く" },
+  { pos: "verb", en: "outline", jp: "の要点を述べる" },
+  { pos: "verb", en: "shed", jp: "を捨て去る" },
+  { pos: "verb", en: "emit", jp: "を排出する" },
+  { pos: "verb", en: "renew", jp: "を更新する" },
+  { pos: "verb", en: "utilize", jp: "を利用する" },
+  { pos: "verb", en: "assert", jp: "を主張する" },
+  { pos: "verb", en: "strain", jp: "に負担をかける" },
+  { pos: "verb", en: "strive", jp: "努力する" },
+  { pos: "verb", en: "dare", jp: "あえて…する" },
+  { pos: "verb", en: "boast", jp: "を誇る" },
+  { pos: "verb", en: "startle", jp: "をびっくりさせる" },
+  { pos: "verb", en: "offend", jp: "の気分を害する" },
+  { pos: "verb", en: "compute", jp: "を計算する" },
+  { pos: "verb", en: "assemble", jp: "を集める" },
+  { pos: "verb", en: "worsen", jp: "を悪化させる" },
+  { pos: "verb", en: "flip", jp: "を裏返す" },
+  { pos: "verb", en: "rub", jp: "をこする" },
+  { pos: "verb", en: "descend", jp: "を降りる" },
+  { pos: "verb", en: "compensate", jp: "補償する" },
+  { pos: "verb", en: "comprise", jp: "から成る" },
+  { pos: "verb", en: "prevail", jp: "普及している" },
+  { pos: "verb", en: "update", jp: "を最新のものにする" },
+  { pos: "verb", en: "refresh", jp: "をさわやかにする" },
+  { pos: "verb", en: "bloom", jp: "花が咲く" },
+  { pos: "verb", en: "conquer", jp: "を征服する" },
+  { pos: "verb", en: "induce", jp: "を引き起こす" },
+  { pos: "verb", en: "attain", jp: "を達成する" },
+  { pos: "verb", en: "spray", jp: "を吹きかける" },
+  { pos: "verb", en: "retrieve", jp: "を取り戻す" },
+  { pos: "verb", en: "portray", jp: "を描く" },
+  { pos: "verb", en: "scratch", jp: "を引っかく" },
+  { pos: "verb", en: "designate", jp: "を指定する" },
+  { pos: "verb", en: "contradict", jp: "と矛盾する" },
+  { pos: "verb", en: "sigh", jp: "ため息をつく" },
+  { pos: "verb", en: "disrupt", jp: "を混乱させる" },
+  { pos: "verb", en: "depart", jp: "出発する" },
+  { pos: "verb", en: "navigate", jp: "を誘導する" },
+  { pos: "verb", en: "beg", jp: "を懇願する" },
+  { pos: "verb", en: "inhabit", jp: "に住んでいる" },
+  { pos: "verb", en: "diagnose", jp: "を診断する" },
+  { pos: "verb", en: "comprehend", jp: "を理解する" },
+  { pos: "verb", en: "oblige", jp: "に義務づける" },
+  { pos: "verb", en: "cram", jp: "に詰め込む" },
+  { pos: "verb", en: "flock", jp: "群がる" },
+  { pos: "verb", en: "underestimate", jp: "を過小評価する" },
+  { pos: "verb", en: "clarify", jp: "を明確にする" },
+  { pos: "verb", en: "spark", jp: "を引き起こす" },
+  { pos: "verb", en: "seize", jp: "をつかむ" },
+  { pos: "verb", en: "soar", jp: "急上昇する" },
+  { pos: "verb", en: "glow", jp: "光り輝く" },
+  { pos: "verb", en: "disguise", jp: "を変装させる" },
+  { pos: "verb", en: "distort", jp: "を歪める" },
+  { pos: "verb", en: "undermine", jp: "を徐々にむしばむ" },
+  { pos: "verb", en: "abolish", jp: "を廃止する" },
+  { pos: "verb", en: "strip", jp: "を取り去る" },
+  { pos: "verb", en: "dispose", jp: "を処分する" },
+  { pos: "verb", en: "dump", jp: "を投棄する" },
+  { pos: "verb", en: "weave", jp: "を織る" },
+  { pos: "verb", en: "refine", jp: "を洗練する" },
+  { pos: "verb", en: "enrich", jp: "を豊かにする" },
+  { pos: "verb", en: "coordinate", jp: "を調整する" },
+  { pos: "verb", en: "bless", jp: "に恩恵を与える" },
+  { pos: "verb", en: "regain", jp: "を取り戻す" },
+  { pos: "verb", en: "conform", jp: "順応する" },
+  { pos: "verb", en: "enroll", jp: "登録する" },
+  { pos: "verb", en: "entitle", jp: "に権利を与える" },
+  { pos: "verb", en: "halt", jp: "を止める" },
+  { pos: "verb", en: "provoke", jp: "を引き起こす" },
+  { pos: "verb", en: "invade", jp: "を侵略する" },
+  { pos: "verb", en: "squeeze", jp: "を押し込む" },
+  { pos: "verb", en: "crawl", jp: "はう" },
+  { pos: "verb", en: "digest", jp: "を消化する" },
+  { pos: "verb", en: "utter", jp: "を発する" },
+  { pos: "verb", en: "refrain", jp: "控える" },
+  { pos: "verb", en: "populate", jp: "に住む" },
+  { pos: "verb", en: "accommodate", jp: "を収容する" },
+  { pos: "verb", en: "steer", jp: "を操縦する" },
+  { pos: "verb", en: "drown", jp: "溺死する" },
+  { pos: "verb", en: "dip", jp: "を浸す" },
+  { pos: "verb", en: "soak", jp: "を浸す" },
+  { pos: "verb", en: "stir", jp: "をかき回す" },
+  { pos: "verb", en: "transplant", jp: "を移植する" },
+  { pos: "verb", en: "reassure", jp: "を安心させる" },
+  { pos: "verb", en: "resume", jp: "を再開する" },
+  { pos: "verb", en: "speculate", jp: "と推測する" },
+  { pos: "verb", en: "surpass", jp: "を上回る" },
+  { pos: "verb", en: "appoint", jp: "を任命する" },
+  { pos: "verb", en: "intrigue", jp: "に興味を持たせる" },
+  { pos: "verb", en: "decay", jp: "腐敗する" },
+  { pos: "verb", en: "contaminate", jp: "を汚染する" },
+  { pos: "verb", en: "swell", jp: "膨張する" },
+  { pos: "verb", en: "delete", jp: "を削除する" },
+  { pos: "verb", en: "tolerate", jp: "を許容する" },
+  { pos: "verb", en: "envy", jp: "をうらやむ" },
+  { pos: "verb", en: "pray", jp: "祈る" },
+  { pos: "verb", en: "confess", jp: "を告白する" },
+  { pos: "verb", en: "resign", jp: "を辞任する" },
+  { pos: "verb", en: "dissolve", jp: "を溶かす" },
+  { pos: "verb", en: "unfold", jp: "を開く" },
+  { pos: "verb", en: "awaken", jp: "を目覚めさせる" },
+  { pos: "verb", en: "conceive", jp: "を思いつく" },
+  { pos: "verb", en: "collaborate", jp: "共同して働く" },
+  { pos: "verb", en: "exert", jp: "を及ぼす" },
+  { pos: "verb", en: "excel", jp: "秀でている" },
+  { pos: "verb", en: "prosper", jp: "栄える" },
+  { pos: "verb", en: "surge", jp: "殺到する" },
+  { pos: "verb", en: "intervene", jp: "介入する" },
+  { pos: "verb", en: "insert", jp: "を挿入する" },
+  { pos: "verb", en: "overtake", jp: "を追い抜く" },
+  { pos: "verb", en: "snap", jp: "をポキッと折る" },
+  { pos: "verb", en: "carve", jp: "を彫る" },
+  { pos: "verb", en: "addict", jp: "中毒になる" },
+  { pos: "verb", en: "condemn", jp: "を非難する" },
+  { pos: "verb", en: "convict", jp: "に有罪を宣告する" },
+  { pos: "verb", en: "dictate", jp: "を指図する" },
+  { pos: "verb", en: "prescribe", jp: "を処方する" },
+  { pos: "verb", en: "inhibit", jp: "を抑制する" },
+  { pos: "verb", en: "stray", jp: "はぐれる" },
+  { pos: "verb", en: "roam", jp: "を歩き回る" },
+  { pos: "verb", en: "enclose", jp: "を同封する" },
+  { pos: "verb", en: "execute", jp: "を実行する" },
+  { pos: "verb", en: "coincide", jp: "同時に起こる" },
+  { pos: "verb", en: "lag", jp: "遅れる" },
+  { pos: "verb", en: "cling", jp: "しがみつく" },
+  { pos: "verb", en: "erase", jp: "を消す" },
+  { pos: "verb", en: "grind", jp: "をひく" },
+  { pos: "verb", en: "knit", jp: "を編む" },
+  { pos: "verb", en: "inquire", jp: "を尋ねる" },
+  { pos: "verb", en: "betray", jp: "を裏切る" },
+  { pos: "verb", en: "leak", jp: "漏れる" },
+  { pos: "verb", en: "smash", jp: "を粉砕する" },
+  { pos: "verb", en: "bounce", jp: "跳ねる" },
+  { pos: "verb", en: "sprawl", jp: "不規則に広がる" },
+  { pos: "verb", en: "converse", jp: "会話をする" },
+  { pos: "verb", en: "recite", jp: "を暗唱する" },
+  { pos: "verb", en: "disregard", jp: "を無視する" },
+  { pos: "verb", en: "frown", jp: "眉をひそめる" },
+  { pos: "verb", en: "evoke", jp: "を呼び起こす" },
+  { pos: "verb", en: "pledge", jp: "を誓う" },
+  { pos: "verb", en: "aspire", jp: "熱望する" },
+  { pos: "verb", en: "contemplate", jp: "を熟考する" },
+  { pos: "verb", en: "embody", jp: "を具現する" },
+  { pos: "verb", en: "illuminate", jp: "を照らす" },
+  { pos: "verb", en: "console", jp: "を慰める" },
+  { pos: "verb", en: "verify", jp: "の正しさを証明する" },
+  { pos: "verb", en: "disclose", jp: "を公表する" },
+  { pos: "verb", en: "stack", jp: "を積み重ねる" },
+  { pos: "verb", en: "rotate", jp: "回転する" },
+  { pos: "verb", en: "constrain", jp: "を抑える" },
+  { pos: "verb", en: "hinder", jp: "を妨げる" },
+  { pos: "verb", en: "withstand", jp: "に耐える" },
+  { pos: "verb", en: "tweet", jp: "つぶやく" },
+  { pos: "verb", en: "sneeze", jp: "くしゃみをする" },
+  { pos: "verb", en: "erupt", jp: "噴火する" },
+  { pos: "verb", en: "blur", jp: "をぼかす" },
+  { pos: "verb", en: "overlap", jp: "重なる" },
+  { pos: "verb", en: "embed", jp: "埋め込まれる" },
+  { pos: "verb", en: "displace", jp: "に取って代わる" },
+  { pos: "verb", en: "render", jp: "をある状態にする" },
+  { pos: "verb", en: "plunge", jp: "突っ込む" },
+  { pos: "verb", en: "surrender", jp: "を放棄する" },
+  { pos: "verb", en: "plug", jp: "をふさぐ" },
+  { pos: "verb", en: "suck", jp: "を吸う" },
+  { pos: "verb", en: "mock", jp: "をばかにする" },
+  { pos: "verb", en: "tease", jp: "をからかう" },
+  { pos: "verb", en: "soothe", jp: "をなだめる" },
+  { pos: "verb", en: "stain", jp: "を汚す" },
+  { pos: "verb", en: "shun", jp: "を避ける" },
+  { pos: "verb", en: "stumble", jp: "つまずく" },
+  { pos: "verb", en: "flush", jp: "紅潮する" },
+  { pos: "verb", en: "impair", jp: "を損なう" },
+  { pos: "verb", en: "presume", jp: "と推定する" },
+  { pos: "verb", en: "contend", jp: "と主張する" },
+  { pos: "verb", en: "roar", jp: "ほえる" },
+  { pos: "verb", en: "haunt", jp: "につきまとう" },
+  { pos: "verb", en: "divert", jp: "をそらす" },
+  { pos: "verb", en: "await", jp: "を待つ" },
+  { pos: "verb", en: "fetch", jp: "を取ってくる" },
+  { pos: "verb", en: "unify", jp: "を統一する" },
+  { pos: "verb", en: "inspect", jp: "を点検する" },
+  { pos: "verb", en: "entail", jp: "を伴う" },
+  { pos: "verb", en: "deduce", jp: "を推測する" },
+  { pos: "verb", en: "simulate", jp: "を模擬実験する" },
+  { pos: "verb", en: "merge", jp: "を合併する" },
+  { pos: "verb", en: "penetrate", jp: "に浸透する" },
+  { pos: "verb", en: "cater", jp: "要望に応える" },
+  { pos: "verb", en: "assault", jp: "を攻撃する" },
+  { pos: "verb", en: "torture", jp: "を苦しめる" },
+  { pos: "verb", en: "bleed", jp: "出血する" },
+  { pos: "verb", en: "erect", jp: "を建てる" },
+  { pos: "verb", en: "cherish", jp: "を大切にする" },
+  { pos: "verb", en: "arouse", jp: "を引き起こす" },
+  { pos: "verb", en: "doom", jp: "運命にある" },
+  { pos: "verb", en: "mourn", jp: "を悼む" },
+  { pos: "verb", en: "dread", jp: "をひどく恐れる" },
+  { pos: "verb", en: "nourish", jp: "をはぐくむ" },
+  { pos: "verb", en: "inject", jp: "を注入する" },
+  { pos: "verb", en: "swear", jp: "を誓う" },
+  { pos: "verb", en: "bid", jp: "の値をつける" },
+  { pos: "verb", en: "corrupt", jp: "を堕落させる" },
+  { pos: "verb", en: "preoccupy", jp: "の心を奪う" },
+  { pos: "verb", en: "browse", jp: "を閲覧する" },
+  { pos: "verb", en: "compile", jp: "を編集する" },
+  { pos: "verb", en: "allocate", jp: "を割り当てる" },
+  { pos: "verb", en: "offset", jp: "を相殺する" },
+  { pos: "verb", en: "restrain", jp: "を制止する" },
+  { pos: "verb", en: "comply", jp: "従う" },
+  { pos: "verb", en: "expire", jp: "期限が切れる" },
+  { pos: "verb", en: "embark", jp: "に乗り出す" },
+  { pos: "verb", en: "flap", jp: "羽ばたく" },
+  { pos: "verb", en: "furnish", jp: "に備えつける" },
+  { pos: "verb", en: "forge", jp: "を築く" },
+  { pos: "verb", en: "thrust", jp: "を押しつける" },
+  { pos: "verb", en: "dispatch", jp: "を派遣する" },
+  { pos: "verb", en: "resent", jp: "に憤慨する" },
+  { pos: "verb", en: "reconcile", jp: "を和解させる" },
+  { pos: "verb", en: "allege", jp: "を主張する" },
+  { pos: "verb", en: "oppress", jp: "を抑圧する" },
+  { pos: "verb", en: "expel", jp: "を追放する" },
+  { pos: "verb", en: "ascend", jp: "を上がる" },
+  { pos: "verb", en: "commence", jp: "を開始する" },
+
+  // --- 名詞 (356語) ---
+  { pos: "noun", en: "premise", jp: "前提" },
+  { pos: "noun", en: "input", jp: "入力" },
+  { pos: "noun", en: "merit", jp: "利点" },
+  { pos: "noun", en: "sympathy", jp: "同情" },
+  { pos: "noun", en: "compliment", jp: "賛辞" },
+  { pos: "noun", en: "infrastructure", jp: "インフラ" },
+  { pos: "noun", en: "ray", jp: "光線" },
+  { pos: "noun", en: "distress", jp: "苦悩" },
+  { pos: "noun", en: "joint", jp: "関節" },
+  { pos: "noun", en: "expedition", jp: "遠征" },
+  { pos: "noun", en: "adolescent", jp: "青年" },
+  { pos: "noun", en: "shade", jp: "日陰" },
+  { pos: "noun", en: "jury", jp: "陪審" },
+  { pos: "noun", en: "ethic", jp: "倫理" },
+  { pos: "noun", en: "penalty", jp: "罰金" },
+  { pos: "noun", en: "faculty", jp: "学部" },
+  { pos: "noun", en: "scheme", jp: "計画" },
+  { pos: "noun", en: "nutrition", jp: "栄養" },
+  { pos: "noun", en: "particle", jp: "微粒子" },
+  { pos: "noun", en: "molecule", jp: "分子" },
+  { pos: "noun", en: "nationality", jp: "国籍" },
+  { pos: "noun", en: "poll", jp: "世論調査" },
+  { pos: "noun", en: "clinic", jp: "診療所" },
+  { pos: "noun", en: "dementia", jp: "認知症" },
+  { pos: "noun", en: "fatigue", jp: "疲労" },
+  { pos: "noun", en: "dilemma", jp: "ジレンマ" },
+  { pos: "noun", en: "queue", jp: "列" },
+  { pos: "noun", en: "curve", jp: "カーブ" },
+  { pos: "noun", en: "narrative", jp: "物語" },
+  { pos: "noun", en: "fingerprint", jp: "指紋" },
+  { pos: "noun", en: "file", jp: "ファイル" },
+  { pos: "noun", en: "wilderness", jp: "荒野" },
+  { pos: "noun", en: "pesticide", jp: "殺虫剤" },
+  { pos: "noun", en: "panic", jp: "パニック" },
+  { pos: "noun", en: "fabric", jp: "織物" },
+  { pos: "noun", en: "fantasy", jp: "空想" },
+  { pos: "noun", en: "fancy", jp: "好み" },
+  { pos: "noun", en: "virtue", jp: "美徳" },
+  { pos: "noun", en: "empathy", jp: "共感" },
+  { pos: "noun", en: "cue", jp: "合図" },
+  { pos: "noun", en: "enterprise", jp: "企業" },
+  { pos: "noun", en: "output", jp: "生産高" },
+  { pos: "noun", en: "congress", jp: "議会" },
+  { pos: "noun", en: "millennium", jp: "千年間" },
+  { pos: "noun", en: "mankind", jp: "人類" },
+  { pos: "noun", en: "Muslim", jp: "イスラム教徒" },
+  { pos: "noun", en: "estate", jp: "財産" },
+  { pos: "noun", en: "landmine", jp: "地雷" },
+  { pos: "noun", en: "caution", jp: "用心" },
+  { pos: "noun", en: "controversy", jp: "論争" },
+  { pos: "noun", en: "consensus", jp: "総意" },
+  { pos: "noun", en: "retail", jp: "小売り" },
+  { pos: "noun", en: "fiber", jp: "繊維" },
+  { pos: "noun", en: "scent", jp: "香り" },
+  { pos: "noun", en: "beverage", jp: "飲料" },
+  { pos: "noun", en: "supplement", jp: "栄養補助剤" },
+  { pos: "noun", en: "diabetes", jp: "糖尿病" },
+  { pos: "noun", en: "province", jp: "州" },
+  { pos: "noun", en: "reef", jp: "暗礁" },
+  { pos: "noun", en: "microbe", jp: "微生物" },
+  { pos: "noun", en: "excess", jp: "過剰" },
+  { pos: "noun", en: "gallery", jp: "美術館" },
+  { pos: "noun", en: "fame", jp: "名声" },
+  { pos: "noun", en: "deadline", jp: "締め切り" },
+  { pos: "noun", en: "undergraduate", jp: "学部学生" },
+  { pos: "noun", en: "slavery", jp: "奴隷制度" },
+  { pos: "noun", en: "prey", jp: "獲物" },
+  { pos: "noun", en: "mess", jp: "混乱状態" },
+  { pos: "noun", en: "recession", jp: "不況" },
+  { pos: "noun", en: "retreat", jp: "後退" },
+  { pos: "noun", en: "grave", jp: "墓" },
+  { pos: "noun", en: "column", jp: "コラム" },
+  { pos: "noun", en: "scenery", jp: "景色" },
+  { pos: "noun", en: "plot", jp: "筋" },
+  { pos: "noun", en: "sculpture", jp: "彫刻" },
+  { pos: "noun", en: "tablet", jp: "錠剤" },
+  { pos: "noun", en: "profile", jp: "横顔" },
+  { pos: "noun", en: "appetite", jp: "食欲" },
+  { pos: "noun", en: "impulse", jp: "衝動" },
+  { pos: "noun", en: "script", jp: "台本" },
+  { pos: "noun", en: "anniversary", jp: "記念日" },
+  { pos: "noun", en: "pension", jp: "年金" },
+  { pos: "noun", en: "temper", jp: "気質" },
+  { pos: "noun", en: "cortex", jp: "皮質" },
+  { pos: "noun", en: "syndrome", jp: "症候群" },
+  { pos: "noun", en: "chamber", jp: "部屋" },
+  { pos: "noun", en: "utility", jp: "公共事業" },
+  { pos: "noun", en: "cattle", jp: "牛" },
+  { pos: "noun", en: "herd", jp: "群れ" },
+  { pos: "noun", en: "fluid", jp: "液体" },
+  { pos: "noun", en: "pity", jp: "残念なこと" },
+  { pos: "noun", en: "priest", jp: "聖職者" },
+  { pos: "noun", en: "acquaintance", jp: "知人" },
+  { pos: "noun", en: "offspring", jp: "子孫" },
+  { pos: "noun", en: "famine", jp: "飢饉" },
+  { pos: "noun", en: "deforestation", jp: "森林伐採" },
+  { pos: "noun", en: "jail", jp: "刑務所" },
+  { pos: "noun", en: "commodity", jp: "商品" },
+  { pos: "noun", en: "format", jp: "書式" },
+  { pos: "noun", en: "recipient", jp: "受け取る人" },
+  { pos: "noun", en: "drill", jp: "訓練" },
+  { pos: "noun", en: "inability", jp: "無能" },
+  { pos: "noun", en: "republic", jp: "共和国" },
+  { pos: "noun", en: "combat", jp: "戦闘" },
+  { pos: "noun", en: "debris", jp: "残骸" },
+  { pos: "noun", en: "bug", jp: "病原菌" },
+  { pos: "noun", en: "fraction", jp: "わずか" },
+  { pos: "noun", en: "index", jp: "指標" },
+  { pos: "noun", en: "intuition", jp: "直感" },
+  { pos: "noun", en: "motive", jp: "動機" },
+  { pos: "noun", en: "consent", jp: "同意" },
+  { pos: "noun", en: "hierarchy", jp: "階層制" },
+  { pos: "noun", en: "monument", jp: "記念碑" },
+  { pos: "noun", en: "asset", jp: "資産" },
+  { pos: "noun", en: "quest", jp: "探究" },
+  { pos: "noun", en: "dignity", jp: "尊厳" },
+  { pos: "noun", en: "criterion", jp: "基準" },
+  { pos: "noun", en: "paradox", jp: "逆説" },
+  { pos: "noun", en: "parliament", jp: "議会" },
+  { pos: "noun", en: "legislation", jp: "法律" },
+  { pos: "noun", en: "agenda", jp: "協議事項" },
+  { pos: "noun", en: "mainstream", jp: "主流" },
+  { pos: "noun", en: "troop", jp: "軍隊" },
+  { pos: "noun", en: "epidemic", jp: "流行病" },
+  { pos: "noun", en: "outbreak", jp: "勃発" },
+  { pos: "noun", en: "chaos", jp: "大混乱" },
+  { pos: "noun", en: "nightmare", jp: "悪夢" },
+  { pos: "noun", en: "horror", jp: "恐怖" },
+  { pos: "noun", en: "cluster", jp: "集団" },
+  { pos: "noun", en: "pollen", jp: "花粉" },
+  { pos: "noun", en: "hive", jp: "ミツバチの巣" },
+  { pos: "noun", en: "irrigation", jp: "灌漑" },
+  { pos: "noun", en: "dose", jp: "服用量" },
+  { pos: "noun", en: "suicide", jp: "自殺" },
+  { pos: "noun", en: "feast", jp: "祝宴" },
+  { pos: "noun", en: "cuisine", jp: "料理" },
+  { pos: "noun", en: "rumor", jp: "うわさ" },
+  { pos: "noun", en: "proverb", jp: "ことわざ" },
+  { pos: "noun", en: "signature", jp: "署名" },
+  { pos: "noun", en: "formula", jp: "公式" },
+  { pos: "noun", en: "tuition", jp: "授業料" },
+  { pos: "noun", en: "intake", jp: "摂取量" },
+  { pos: "noun", en: "spectrum", jp: "範囲" },
+  { pos: "noun", en: "kidney", jp: "腎臓" },
+  { pos: "noun", en: "gear", jp: "用具" },
+  { pos: "noun", en: "aisle", jp: "通路" },
+  { pos: "noun", en: "grief", jp: "深い悲しみ" },
+  { pos: "noun", en: "destiny", jp: "運命" },
+  { pos: "noun", en: "skull", jp: "頭蓋骨" },
+  { pos: "noun", en: "tomb", jp: "墓" },
+  { pos: "noun", en: "monk", jp: "修道士" },
+  { pos: "noun", en: "worship", jp: "崇拝" },
+  { pos: "noun", en: "headline", jp: "見出し" },
+  { pos: "noun", en: "internship", jp: "実務研修" },
+  { pos: "noun", en: "outlet", jp: "直売店" },
+  { pos: "noun", en: "remedy", jp: "治療法" },
+  { pos: "noun", en: "pill", jp: "錠剤" },
+  { pos: "noun", en: "reception", jp: "受付" },
+  { pos: "noun", en: "transaction", jp: "取引" },
+  { pos: "noun", en: "mutation", jp: "突然変異" },
+  { pos: "noun", en: "dairy", jp: "乳製品" },
+  { pos: "noun", en: "compassion", jp: "同情" },
+  { pos: "noun", en: "posture", jp: "姿勢" },
+  { pos: "noun", en: "curse", jp: "呪い" },
+  { pos: "noun", en: "funeral", jp: "葬式" },
+  { pos: "noun", en: "census", jp: "国勢調査" },
+  { pos: "noun", en: "encyclopedia", jp: "百科事典" },
+  { pos: "noun", en: "cereal", jp: "穀物" },
+  { pos: "noun", en: "fragment", jp: "断片" },
+  { pos: "noun", en: "patch", jp: "斑点" },
+  { pos: "noun", en: "rubbish", jp: "ごみ" },
+  { pos: "noun", en: "maze", jp: "迷路" },
+  { pos: "noun", en: "outlook", jp: "見通し" },
+  { pos: "noun", en: "breakthrough", jp: "大発見" },
+  { pos: "noun", en: "triumph", jp: "勝利" },
+  { pos: "noun", en: "ally", jp: "同盟国" },
+  { pos: "noun", en: "spectator", jp: "観客" },
+  { pos: "noun", en: "sphere", jp: "領域" },
+  { pos: "noun", en: "county", jp: "郡" },
+  { pos: "noun", en: "behalf", jp: "利益" },
+  { pos: "noun", en: "interval", jp: "間隔" },
+  { pos: "noun", en: "circulation", jp: "循環" },
+  { pos: "noun", en: "blade", jp: "刃" },
+  { pos: "noun", en: "theft", jp: "窃盗" },
+  { pos: "noun", en: "vacuum", jp: "真空" },
+  { pos: "noun", en: "collision", jp: "衝突" },
+  { pos: "noun", en: "bargain", jp: "買い得品" },
+  { pos: "noun", en: "landmark", jp: "目印" },
+  { pos: "noun", en: "revenue", jp: "歳入" },
+  { pos: "noun", en: "treaty", jp: "条約" },
+  { pos: "noun", en: "entrepreneur", jp: "起業家" },
+  { pos: "noun", en: "stake", jp: "利害関係" },
+  { pos: "noun", en: "surplus", jp: "余剰" },
+  { pos: "noun", en: "inflation", jp: "インフレ" },
+  { pos: "noun", en: "sweatshop", jp: "搾取工場" },
+  { pos: "noun", en: "clash", jp: "衝突" },
+  { pos: "noun", en: "sociology", jp: "社会学" },
+  { pos: "noun", en: "ideology", jp: "イデオロギー" },
+  { pos: "noun", en: "margin", jp: "余白" },
+  { pos: "noun", en: "realm", jp: "領域" },
+  { pos: "noun", en: "domain", jp: "分野" },
+  { pos: "noun", en: "algorithm", jp: "アルゴリズム" },
+  { pos: "noun", en: "prairie", jp: "大草原" },
+  { pos: "noun", en: "frontier", jp: "最先端" },
+  { pos: "noun", en: "bullet", jp: "銃弾" },
+  { pos: "noun", en: "shield", jp: "盾" },
+  { pos: "noun", en: "despair", jp: "絶望" },
+  { pos: "noun", en: "radiation", jp: "放射能" },
+  { pos: "noun", en: "placebo", jp: "偽薬" },
+  { pos: "noun", en: "nursery", jp: "託児所" },
+  { pos: "noun", en: "spouse", jp: "配偶者" },
+  { pos: "noun", en: "makeup", jp: "化粧" },
+  { pos: "noun", en: "mummy", jp: "ミイラ" },
+  { pos: "noun", en: "flesh", jp: "肉" },
+  { pos: "noun", en: "limb", jp: "手足" },
+  { pos: "noun", en: "odor", jp: "におい" },
+  { pos: "noun", en: "laundry", jp: "洗濯物" },
+  { pos: "noun", en: "tide", jp: "潮" },
+  { pos: "noun", en: "questionnaire", jp: "アンケート" },
+  { pos: "noun", en: "nonsense", jp: "ばかげた話" },
+  { pos: "noun", en: "revenge", jp: "復讐" },
+  { pos: "noun", en: "intellect", jp: "知性" },
+  { pos: "noun", en: "hospitality", jp: "歓待" },
+  { pos: "noun", en: "librarian", jp: "司書" },
+  { pos: "noun", en: "manuscript", jp: "原稿" },
+  { pos: "noun", en: "obsession", jp: "強迫観念" },
+  { pos: "noun", en: "hygiene", jp: "衛生" },
+  { pos: "noun", en: "paradigm", jp: "パラダイム" },
+  { pos: "noun", en: "grace", jp: "優美" },
+  { pos: "noun", en: "enlightenment", jp: "啓蒙" },
+  { pos: "noun", en: "commerce", jp: "商業" },
+  { pos: "noun", en: "draft", jp: "下書き" },
+  { pos: "noun", en: "barrel", jp: "バレル" },
+  { pos: "noun", en: "timber", jp: "木材" },
+  { pos: "noun", en: "garment", jp: "衣服" },
+  { pos: "noun", en: "thread", jp: "糸" },
+  { pos: "noun", en: "cabinet", jp: "内閣" },
+  { pos: "noun", en: "bureau", jp: "局" },
+  { pos: "noun", en: "autonomy", jp: "自治" },
+  { pos: "noun", en: "toll", jp: "損害" },
+  { pos: "noun", en: "discourse", jp: "話し合い" },
+  { pos: "noun", en: "superstition", jp: "迷信" },
+  { pos: "noun", en: "glimpse", jp: "ちらりと見えること" },
+  { pos: "noun", en: "arithmetic", jp: "計算" },
+  { pos: "noun", en: "glossary", jp: "用語集" },
+  { pos: "noun", en: "archive", jp: "記録文書" },
+  { pos: "noun", en: "legacy", jp: "遺産" },
+  { pos: "noun", en: "anthropology", jp: "人類学" },
+  { pos: "noun", en: "rage", jp: "激怒" },
+  { pos: "noun", en: "sorrow", jp: "悲しみ" },
+  { pos: "noun", en: "psychiatrist", jp: "精神科医" },
+  { pos: "noun", en: "ward", jp: "病棟" },
+  { pos: "noun", en: "stall", jp: "露店" },
+  { pos: "noun", en: "flame", jp: "炎" },
+  { pos: "noun", en: "moisture", jp: "水分" },
+  { pos: "noun", en: "irony", jp: "皮肉" },
+  { pos: "noun", en: "warrior", jp: "戦士" },
+  { pos: "noun", en: "astronomy", jp: "天文学" },
+  { pos: "noun", en: "probe", jp: "宇宙探査機" },
+  { pos: "noun", en: "altitude", jp: "高度" },
+  { pos: "noun", en: "tumor", jp: "腫瘍" },
+  { pos: "noun", en: "defect", jp: "欠陥" },
+  { pos: "noun", en: "sanitation", jp: "公衆衛生" },
+  { pos: "noun", en: "longevity", jp: "長寿" },
+  { pos: "noun", en: "scope", jp: "範囲" },
+  { pos: "noun", en: "sentiment", jp: "感情" },
+  { pos: "noun", en: "tactics", jp: "作戦" },
+  { pos: "noun", en: "feat", jp: "偉業" },
+  { pos: "noun", en: "prestige", jp: "名声" },
+  { pos: "noun", en: "analogy", jp: "類推" },
+  { pos: "noun", en: "conscience", jp: "良心" },
+  { pos: "noun", en: "textile", jp: "織物" },
+  { pos: "noun", en: "deficit", jp: "赤字" },
+  { pos: "noun", en: "plague", jp: "疫病" },
+  { pos: "noun", en: "hazard", jp: "危険" },
+  { pos: "noun", en: "metabolism", jp: "代謝" },
+  { pos: "noun", en: "paralysis", jp: "麻痺" },
+  { pos: "noun", en: "grid", jp: "供給網" },
+  { pos: "noun", en: "carriage", jp: "馬車" },
+  { pos: "noun", en: "friction", jp: "不和" },
+  { pos: "noun", en: "rebel", jp: "反逆者" },
+  { pos: "noun", en: "regime", jp: "政権" },
+  { pos: "noun", en: "monopoly", jp: "独占" },
+  { pos: "noun", en: "staple", jp: "必需食品" },
+  { pos: "noun", en: "merchandise", jp: "商品" },
+  { pos: "noun", en: "vendor", jp: "行商人" },
+  { pos: "noun", en: "supervisor", jp: "監督者" },
+  { pos: "noun", en: "predecessor", jp: "前任者" },
+  { pos: "noun", en: "personnel", jp: "職員" },
+  { pos: "noun", en: "vessel", jp: "船舶" },
+  { pos: "noun", en: "liver", jp: "肝臓" },
+  { pos: "noun", en: "duration", jp: "持続時間" },
+  { pos: "noun", en: "certificate", jp: "証明書" },
+  { pos: "noun", en: "geometry", jp: "幾何学" },
+  { pos: "noun", en: "symmetry", jp: "対称" },
+  { pos: "noun", en: "biography", jp: "伝記" },
+  { pos: "noun", en: "masterpiece", jp: "傑作" },
+  { pos: "noun", en: "rhyme", jp: "押韻詩" },
+  { pos: "noun", en: "premium", jp: "保険料" },
+  { pos: "noun", en: "breakdown", jp: "崩壊" },
+  { pos: "noun", en: "courtesy", jp: "礼儀正しさ" },
+  { pos: "noun", en: "protocol", jp: "議定書" },
+  { pos: "noun", en: "specimen", jp: "標本" },
+  { pos: "noun", en: "thesis", jp: "論文" },
+  { pos: "noun", en: "advent", jp: "出現" },
+  { pos: "noun", en: "reign", jp: "治世" },
+  { pos: "noun", en: "diplomacy", jp: "外交" },
+  { pos: "noun", en: "embassy", jp: "大使館" },
+  { pos: "noun", en: "exile", jp: "亡命" },
+  { pos: "noun", en: "refuge", jp: "避難所" },
+  { pos: "noun", en: "plight", jp: "窮状" },
+  { pos: "noun", en: "solitude", jp: "孤独" },
+  { pos: "noun", en: "fallacy", jp: "誤った考え" },
+  { pos: "noun", en: "latitude", jp: "緯度" },
+  { pos: "noun", en: "eclipse", jp: "日食" },
+  { pos: "noun", en: "basin", jp: "流域" },
+  { pos: "noun", en: "erosion", jp: "浸食" },
+  { pos: "noun", en: "archaeology", jp: "考古学" },
+  { pos: "noun", en: "errand", jp: "使い" },
+  { pos: "noun", en: "mercy", jp: "慈悲" },
+  { pos: "noun", en: "rhetoric", jp: "修辞法" },
+  { pos: "noun", en: "verse", jp: "韻文" },
+  { pos: "noun", en: "congestion", jp: "混雑" },
+  { pos: "noun", en: "sewage", jp: "下水" },
+  { pos: "noun", en: "complement", jp: "補完物" },
+  { pos: "noun", en: "subsidy", jp: "補助金" },
+  { pos: "noun", en: "mortgage", jp: "住宅ローン" },
+  { pos: "noun", en: "attorney", jp: "弁護士" },
+  { pos: "noun", en: "outfit", jp: "衣装一式" },
+  { pos: "noun", en: "bulk", jp: "大半" },
+  { pos: "noun", en: "reunion", jp: "再会" },
+  { pos: "noun", en: "synthesis", jp: "合成" },
+  { pos: "noun", en: "mold", jp: "鋳型" },
+  { pos: "noun", en: "thirst", jp: "のどの渇き" },
+  { pos: "noun", en: "greed", jp: "強欲" },
+  { pos: "noun", en: "bribe", jp: "賄賂" },
+  { pos: "noun", en: "contempt", jp: "軽蔑" },
+  { pos: "noun", en: "texture", jp: "手触り" },
+  { pos: "noun", en: "orphan", jp: "孤児" },
+  { pos: "noun", en: "harassment", jp: "嫌がらせ" },
+  { pos: "noun", en: "hay", jp: "干し草" },
+  { pos: "noun", en: "doctrine", jp: "教義" },
+
+  // --- 形容詞・その他 (206語) ---
+  { pos: "adj", en: "grateful", jp: "感謝している" },
+  { pos: "adj", en: "valid", jp: "妥当な" },
+  { pos: "adj", en: "elaborate", jp: "入念な" },
+  { pos: "adj", en: "moderate", jp: "適度な" },
+  { pos: "adj", en: "dynamic", jp: "活動的な" },
+  { pos: "adj", en: "brave", jp: "勇敢な" },
+  { pos: "adj", en: "brilliant", jp: "すばらしい" },
+  { pos: "adj", en: "tremendous", jp: "途方もない" },
+  { pos: "adj", en: "oral", jp: "口頭の" },
+  { pos: "adj", en: "innocent", jp: "無罪の" },
+  { pos: "adj", en: "subsequent", jp: "その後の" },
+  { pos: "adj", en: "shallow", jp: "浅い" },
+  { pos: "adj", en: "indifferent", jp: "無関心な" },
+  { pos: "adj", en: "inferior", jp: "より劣った" },
+  { pos: "adj", en: "awkward", jp: "気まずい" },
+  { pos: "adj", en: "obese", jp: "肥満した" },
+  { pos: "adj", en: "pregnant", jp: "妊娠した" },
+  { pos: "adj", en: "intimate", jp: "親密な" },
+  { pos: "adj", en: "medieval", jp: "中世の" },
+  { pos: "adj", en: "sacred", jp: "神聖な" },
+  { pos: "adj", en: "simultaneously", jp: "同時に" },
+  { pos: "adj", en: "versus", jp: "対" },
+  { pos: "adj", en: "dense", jp: "密集した" },
+  { pos: "adj", en: "exotic", jp: "外来の" },
+  { pos: "adj", en: "acid", jp: "酸性の" },
+  { pos: "adj", en: "bitter", jp: "苦い" },
+  { pos: "adj", en: "sensible", jp: "賢明な" },
+  { pos: "adj", en: "noble", jp: "高貴な" },
+  { pos: "adj", en: "vague", jp: "漠然とした" },
+  { pos: "adj", en: "parallel", jp: "平行の" },
+  { pos: "adj", en: "tense", jp: "緊張した" },
+  { pos: "adj", en: "vertical", jp: "垂直の" },
+  { pos: "adj", en: "indigenous", jp: "先住の" },
+  { pos: "adj", en: "aboriginal", jp: "先住の" },
+  { pos: "adj", en: "seasonal", jp: "季節の" },
+  { pos: "adj", en: "abundant", jp: "豊富な" },
+  { pos: "adj", en: "hybrid", jp: "雑種の" },
+  { pos: "adj", en: "irrelevant", jp: "無関係の" },
+  { pos: "adj", en: "ridiculous", jp: "ばかげた" },
+  { pos: "adj", en: "fairy", jp: "妖精の" },
+  { pos: "adj", en: "sensory", jp: "感覚の" },
+  { pos: "adj", en: "chronic", jp: "慢性の" },
+  { pos: "adj", en: "voluntary", jp: "自発的な" },
+  { pos: "adj", en: "inclined", jp: "傾向がある" },
+  { pos: "adj", en: "decent", jp: "まずまずの" },
+  { pos: "adj", en: "competent", jp: "有能な" },
+  { pos: "adj", en: "straightforward", jp: "単純な" },
+  { pos: "adj", en: "cosmetic", jp: "化粧の" },
+  { pos: "adj", en: "delicate", jp: "繊細な" },
+  { pos: "adj", en: "interior", jp: "室内の" },
+  { pos: "adj", en: "transparent", jp: "透明な" },
+  { pos: "adj", en: "aesthetic", jp: "美的な" },
+  { pos: "adj", en: "deliberate", jp: "故意の" },
+  { pos: "adj", en: "demographic", jp: "人口統計学の" },
+  { pos: "adj", en: "prehistoric", jp: "有史以前の" },
+  { pos: "adj", en: "innate", jp: "生まれながらの" },
+  { pos: "adj", en: "mild", jp: "穏やかな" },
+  { pos: "adj", en: "toxic", jp: "有毒な" },
+  { pos: "adj", en: "ashamed", jp: "恥じて" },
+  { pos: "adj", en: "humble", jp: "謙虚な" },
+  { pos: "adj", en: "peculiar", jp: "特有の" },
+  { pos: "adj", en: "steep", jp: "急な" },
+  { pos: "adj", en: "trivial", jp: "ささいな" },
+  { pos: "adj", en: "magnificent", jp: "壮大な" },
+  { pos: "adj", en: "wireless", jp: "無線の" },
+  { pos: "adj", en: "ongoing", jp: "継続している" },
+  { pos: "adj", en: "outstanding", jp: "際立った" },
+  { pos: "adj", en: "unprecedented", jp: "前例のない" },
+  { pos: "adj", en: "infinite", jp: "無限の" },
+  { pos: "adj", en: "worthwhile", jp: "価値がある" },
+  { pos: "adj", en: "indispensable", jp: "不可欠な" },
+  { pos: "adj", en: "compulsory", jp: "義務的な" },
+  { pos: "adj", en: "probable", jp: "十分にありそうな" },
+  { pos: "adj", en: "ambiguous", jp: "あいまいな" },
+  { pos: "adj", en: "obscure", jp: "知られていない" },
+  { pos: "adj", en: "skeptical", jp: "懐疑的な" },
+  { pos: "adj", en: "fragile", jp: "壊れやすい" },
+  { pos: "adj", en: "static", jp: "静的な" },
+  { pos: "adj", en: "gradual", jp: "徐々の" },
+  { pos: "adj", en: "vocal", jp: "声の" },
+  { pos: "adj", en: "vivid", jp: "鮮やかな" },
+  { pos: "adj", en: "imperial", jp: "帝国の" },
+  { pos: "adj", en: "hostile", jp: "敵意のある" },
+  { pos: "adj", en: "superficial", jp: "表面的な" },
+  { pos: "adj", en: "scarce", jp: "乏しい" },
+  { pos: "adj", en: "gross", jp: "総計の" },
+  { pos: "adj", en: "inherent", jp: "生来の" },
+  { pos: "adj", en: "notable", jp: "注目に値する" },
+  { pos: "adj", en: "supreme", jp: "最高の" },
+  { pos: "adj", en: "thorough", jp: "徹底的な" },
+  { pos: "adj", en: "naked", jp: "裸の" },
+  { pos: "adj", en: "sincere", jp: "誠実な" },
+  { pos: "adj", en: "tame", jp: "飼いならされた" },
+  { pos: "adj", en: "insufficient", jp: "不十分な" },
+  { pos: "adj", en: "dim", jp: "薄暗い" },
+  { pos: "adj", en: "acute", jp: "激しい" },
+  { pos: "adj", en: "disabled", jp: "障害のある" },
+  { pos: "adj", en: "metropolitan", jp: "大都市の" },
+  { pos: "adj", en: "monetary", jp: "金銭的な" },
+  { pos: "adj", en: "alternate", jp: "交互の" },
+  { pos: "adj", en: "partial", jp: "部分的な" },
+  { pos: "adj", en: "divine", jp: "神の" },
+  { pos: "adj", en: "drastic", jp: "徹底的な" },
+  { pos: "adj", en: "fierce", jp: "猛烈な" },
+  { pos: "adj", en: "sole", jp: "唯一の" },
+  { pos: "adj", en: "spontaneous", jp: "自然発生的な" },
+  { pos: "adj", en: "spatial", jp: "空間の" },
+  { pos: "adj", en: "neat", jp: "きちんとした" },
+  { pos: "adj", en: "tidy", jp: "整頓された" },
+  { pos: "adj", en: "loyal", jp: "忠実な" },
+  { pos: "adj", en: "legitimate", jp: "合法的な" },
+  { pos: "adj", en: "authentic", jp: "本物の" },
+  { pos: "adj", en: "empirical", jp: "経験的な" },
+  { pos: "adj", en: "immense", jp: "膨大な" },
+  { pos: "adj", en: "absurd", jp: "ばかげた" },
+  { pos: "adj", en: "weird", jp: "異様な" },
+  { pos: "adj", en: "accidental", jp: "偶然の" },
+  { pos: "adj", en: "uneasy", jp: "不安な" },
+  { pos: "adj", en: "jealous", jp: "嫉妬深い" },
+  { pos: "adj", en: "feminine", jp: "女らしい" },
+  { pos: "adj", en: "swift", jp: "素早い" },
+  { pos: "adj", en: "hollow", jp: "空洞の" },
+  { pos: "adj", en: "crude", jp: "大まかな" },
+  { pos: "adj", en: "sore", jp: "痛い" },
+  { pos: "adj", en: "pessimistic", jp: "悲観的な" },
+  { pos: "adj", en: "vain", jp: "無駄な" },
+  { pos: "adj", en: "susceptible", jp: "影響を受けやすい" },
+  { pos: "adj", en: "edible", jp: "食用の" },
+  { pos: "adj", en: "sheer", jp: "純然たる" },
+  { pos: "adj", en: "explicit", jp: "明白な" },
+  { pos: "adj", en: "prone", jp: "なりやすい" },
+  { pos: "adj", en: "affluent", jp: "裕福な" },
+  { pos: "adj", en: "plausible", jp: "もっともらしい" },
+  { pos: "adj", en: "vigorous", jp: "精力的な" },
+  { pos: "adj", en: "masculine", jp: "男らしい" },
+  { pos: "adj", en: "rigid", jp: "厳しい" },
+  { pos: "adj", en: "adverse", jp: "不都合な" },
+  { pos: "adj", en: "coherent", jp: "一貫した" },
+  { pos: "adj", en: "literal", jp: "文字どおりの" },
+  { pos: "adj", en: "arbitrary", jp: "恣意的な" },
+  { pos: "adj", en: "anonymous", jp: "匿名の" },
+  { pos: "adj", en: "antique", jp: "骨董の" },
+  { pos: "adj", en: "eternal", jp: "永遠の" },
+  { pos: "adj", en: "intermediate", jp: "中級の" },
+  { pos: "adj", en: "subordinate", jp: "下位の" },
+  { pos: "adj", en: "gloomy", jp: "陰気な" },
+  { pos: "adj", en: "thermal", jp: "熱の" },
+  { pos: "adj", en: "faint", jp: "かすかな" },
+  { pos: "adj", en: "naive", jp: "お人よしの" },
+  { pos: "adj", en: "apt", jp: "傾向がある" },
+  { pos: "adj", en: "arrogant", jp: "横柄な" },
+  { pos: "adj", en: "extrovert", jp: "外向的な" },
+  { pos: "adj", en: "conspicuous", jp: "目立つ" },
+  { pos: "adj", en: "intact", jp: "損なわれていない" },
+  { pos: "adj", en: "eligible", jp: "資格のある" },
+  { pos: "adj", en: "intrinsic", jp: "固有の" },
+  { pos: "adj", en: "diligent", jp: "勤勉な" },
+  { pos: "adj", en: "vocational", jp: "職業の" },
+  { pos: "adj", en: "bankrupt", jp: "破産した" },
+  { pos: "adj", en: "stern", jp: "厳しい" },
+  { pos: "adj", en: "stubborn", jp: "頑固な" },
+  { pos: "adj", en: "maternal", jp: "母親らしい" },
+  { pos: "adj", en: "fertile", jp: "肥沃な" },
+  { pos: "adj", en: "ripe", jp: "熟した" },
+  { pos: "adj", en: "stiff", jp: "硬直した" },
+  { pos: "adj", en: "obsolete", jp: "廃れた" },
+  { pos: "adj", en: "vacant", jp: "空いている" },
+  { pos: "adj", en: "acoustic", jp: "音響の" },
+  { pos: "adj", en: "preliminary", jp: "予備の" },
+  { pos: "adj", en: "approximate", jp: "おおよその" },
+  { pos: "adj", en: "implicit", jp: "暗黙の" },
+  { pos: "adj", en: "punctual", jp: "時間を守る" },
+  { pos: "adj", en: "compatible", jp: "互換性のある" },
+  { pos: "adj", en: "ample", jp: "十分すぎるほどの" },
+  { pos: "adj", en: "pervasive", jp: "浸透する" },
+  { pos: "adj", en: "ubiquitous", jp: "至る所にある" },
+  { pos: "adj", en: "holistic", jp: "全体論の" },
+  { pos: "adj", en: "liable", jp: "しがちな" },
+  { pos: "adj", en: "earnest", jp: "まじめな" },
+  { pos: "adj", en: "intelligible", jp: "理解できる" },
+  { pos: "adj", en: "abrupt", jp: "突然の" },
+  { pos: "adj", en: "reckless", jp: "無謀な" },
+  { pos: "adj", en: "furious", jp: "激怒した" },
+  { pos: "adj", en: "eloquent", jp: "雄弁な" },
+  { pos: "adj", en: "juvenile", jp: "青少年の" },
+  { pos: "adj", en: "notorious", jp: "悪名高い" },
+  { pos: "adj", en: "timid", jp: "臆病な" },
+  { pos: "adj", en: "humid", jp: "湿気のある" },
+  { pos: "adj", en: "contagious", jp: "感染性の" },
+  { pos: "adj", en: "cynical", jp: "冷笑的な" },
+  { pos: "adj", en: "dumb", jp: "ばかげた" },
+  { pos: "adj", en: "monotonous", jp: "単調な" },
+  { pos: "adj", en: "perpetual", jp: "永続的な" },
+  { pos: "adj", en: "dizzy", jp: "目まいがする" },
+  { pos: "adj", en: "weary", jp: "疲れ果てた" },
+  { pos: "adj", en: "numb", jp: "麻痺した" },
+  { pos: "adj", en: "mortal", jp: "致命的な" },
+  { pos: "adj", en: "zealous", jp: "熱心な" }
+];
+
+// ==========================================
+// 音声・効果音
+// ==========================================
+let audioCtx = null;
+function playSfx(type) {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    const now = audioCtx.currentTime;
+
+    if (type === 'pick') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(520, now);
+      osc.frequency.setValueAtTime(680, now + 0.06);
+      gain.gain.setValueAtTime(0.12, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+      osc.start(now);
+      osc.stop(now + 0.16);
+    } else if (type === 'match') {
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(587, now);
+      osc.frequency.setValueAtTime(784, now + 0.08);
+      osc.frequency.setValueAtTime(1046, now + 0.16);
+      gain.gain.setValueAtTime(0.16, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.34);
+      osc.start(now);
+      osc.stop(now + 0.34);
+    } else if (type === 'heal') {
+      osc.type = 'sine';
+      [523, 659, 784, 1046, 1318].forEach((f, idx) => {
+        osc.frequency.setValueAtTime(f, now + idx * 0.07);
+      });
+      gain.gain.setValueAtTime(0.18, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+      osc.start(now);
+      osc.stop(now + 0.45);
+    } else if (type === 'boss') {
+      osc.type = 'sawtooth';
+      [220, 196, 261, 330, 440].forEach((f, idx) => {
+        osc.frequency.setValueAtTime(f, now + idx * 0.08);
+      });
+      gain.gain.setValueAtTime(0.18, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+      osc.start(now);
+      osc.stop(now + 0.5);
+    } else if (type === 'damage') {
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(160, now);
+      osc.frequency.exponentialRampToValueAtTime(65, now + 0.35);
+      gain.gain.setValueAtTime(0.18, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+      osc.start(now);
+      osc.stop(now + 0.35);
+    }
+  } catch (e) {}
+}
+
+function speakWord(text) {
+  try {
+    window.speechSynthesis.cancel();
+    const clean = text.replace(/\.\.\./g, '').replace(/\//g, ' ').trim();
+    const u = new SpeechSynthesisUtterance(clean);
+    u.lang = 'en-US';
+    u.rate = 0.95;
+    window.speechSynthesis.speak(u);
+  } catch (e) {}
+}
+
+// ==========================================
+// ゲーム状態管理
+// ==========================================
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const MAX_LIFE = 3;
+let visiblePairCount = 8;
+
+let selectedChar = 'cat'; // 'cat' or 'chara2'
+let selectedLesson = 'test50';
+let ghostBaseSpeed = 1.15;
+
+function selectChar(val, btn) {
+  selectedChar = val;
+  document.querySelectorAll('#charGroup .opt-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('hud-char-icon').textContent = (val === 'chara2') ? '🧑' : '🐱';
+}
+
+function selectLesson(val, btn) {
+  selectedLesson = val;
+  document.querySelectorAll('#lessonGroup .opt-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function selectPairCount(val, btn) {
+  visiblePairCount = val;
+  document.querySelectorAll('#pairCountGroup .opt-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function selectGhostSpeed(val, btn) {
+  ghostBaseSpeed = val;
+  document.querySelectorAll('#speedGroup .opt-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+let gameState = 'menu';
+let animId = null;
+let lastFrameTime = 0;
+
+let life = MAX_LIFE;
+let score = 0;
+let clearedCount = 0;
+let totalTarget = 50;
+let remainingPool = [];
+let activePairs = [];
+let tiles = [];
+let selectedEnId = null;
+let missedWords = [];
+let isLastFiveBoost = false;
+
+let bannerText = '';
+let bannerColor = '#fde047';
+let bannerTimer = 0;
+let particles = [];
+
+const player = {
+  x: 400,
+  y: 270,
+  r: 18,
+  speed: 245,
+  dirX: 1,
+  walkPhase: 0,
+  invulnTimer: 0,
+  targetX: null,
+  targetY: null
+};
+
+let ghosts = [];
+let bossGhost = null;
+
+const keys = {};
+window.addEventListener('keydown', e => {
+  keys[e.key.toLowerCase()] = true;
+  if (['arrowup','arrowdown','arrowleft','arrowright',' '].includes(e.key.toLowerCase())) {
+    if (gameState === 'playing') e.preventDefault();
+  }
+});
+window.addEventListener('keyup', e => {
+  keys[e.key.toLowerCase()] = false;
+});
+
+let pointerActive = false;
+function setPointerTarget(clientX, clientY) {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+  player.targetX = Math.max(24, Math.min(canvas.width - 24, (clientX - rect.left) * scaleX));
+  player.targetY = Math.max(24, Math.min(canvas.height - 24, (clientY - rect.top) * scaleY));
+}
+
+canvas.addEventListener('pointerdown', e => {
+  if (gameState !== 'playing') return;
+  pointerActive = true;
+  setPointerTarget(e.clientX, e.clientY);
+});
+canvas.addEventListener('pointermove', e => {
+  if (!pointerActive || gameState !== 'playing') return;
+  setPointerTarget(e.clientX, e.clientY);
+});
+window.addEventListener('pointerup', () => {
+  pointerActive = false;
+});
+
+function showBanner(text, color = '#fde047', duration = 1.3) {
+  bannerText = text;
+  bannerColor = color;
+  bannerTimer = duration;
+}
+
+function showStartScreen() {
+  gameState = 'menu';
+  if (animId) cancelAnimationFrame(animId);
+  bossGhost = null;
+  canvas.classList.remove('last-five');
+  document.getElementById('endOverlay').classList.add('hidden');
+  document.getElementById('startOverlay').classList.remove('hidden');
+}
+
+function shuffleArray(arr) {
+  const copy = [...arr];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
+function resetPositionsToStart() {
+  player.x = canvas.width / 2;
+  player.y = canvas.height / 2;
+  player.dirX = 1;
+  player.targetX = null;
+  player.targetY = null;
+  pointerActive = false;
+
+  if (ghosts.length >= 3) {
+    ghosts[0].x = 60;
+    ghosts[0].y = 60;
+    ghosts[1].x = canvas.width - 60;
+    ghosts[1].y = 60;
+    ghosts[2].x = 60;
+    ghosts[2].y = canvas.height - 60;
+  }
+
+  if (bossGhost) {
+    bossGhost.x = canvas.width - 55;
+    bossGhost.y = canvas.height - 55;
+  }
+}
+
+function startGame() {
+  document.getElementById('startOverlay').classList.add('hidden');
+  document.getElementById('endOverlay').classList.add('hidden');
+  canvas.classList.remove('last-five');
+
+  let pool;
+  if (selectedLesson === 'test50') {
+    const v = shuffleArray(WORD_DATA.filter(w => w.pos === 'verb')).slice(0, 20);
+    const n = shuffleArray(WORD_DATA.filter(w => w.pos === 'noun')).slice(0, 20);
+    const a = shuffleArray(WORD_DATA.filter(w => w.pos === 'adj')).slice(0, 10);
+    pool = shuffleArray([...v, ...n, ...a]);
+  } else if (selectedLesson === 'test100') {
+    const v = shuffleArray(WORD_DATA.filter(w => w.pos === 'verb')).slice(0, 40);
+    const n = shuffleArray(WORD_DATA.filter(w => w.pos === 'noun')).slice(0, 40);
+    const a = shuffleArray(WORD_DATA.filter(w => w.pos === 'adj')).slice(0, 20);
+    pool = shuffleArray([...v, ...n, ...a]);
+  } else if (selectedLesson === 'random25') {
+    pool = shuffleArray(WORD_DATA).slice(0, 25);
+  } else if (selectedLesson === 'all900') {
+    pool = shuffleArray(WORD_DATA);
+  } else {
+    pool = shuffleArray(WORD_DATA.filter(w => w.pos === selectedLesson));
+  }
+
+  totalTarget = pool.length;
+  clearedCount = 0;
+  score = 0;
+  life = MAX_LIFE;
+  selectedEnId = null;
+  missedWords = [];
+  particles = [];
+  bannerTimer = 0;
+  isLastFiveBoost = false;
+  bossGhost = null;
+
+  const indexedPool = pool.map((item, idx) => ({
+    id: idx + 1,
+    en: item.en,
+    jp: item.jp
+  }));
+
+  activePairs = indexedPool.slice(0, visiblePairCount);
+  remainingPool = indexedPool.slice(visiblePairCount);
+  ghosts = [
+    { x: 60, y: 60, r: 17, speed: ghostBaseSpeed * 68, color: '#f8fafc', eyeColor: '#ef4444', type: 'chase', phase: 0 },
+    { x: canvas.width - 60, y: 60, r: 17, speed: ghostBaseSpeed * 62, color: '#c084fc', eyeColor: '#fef08a', type: 'intercept', phase: 2 },
+    { x: 60, y: canvas.height - 60, r: 17, speed: ghostBaseSpeed * 58, color: '#38bdf8', eyeColor: '#1e1b4b', type: 'wave', phase: 4 }
+  ];
+
+  resetPositionsToStart();
+  player.invulnTimer = 1.5;
+
+  layoutAndShuffleTiles(false);
+  updateHud();
+  updateHoldingBar();
+
+  gameState = 'playing';
+  lastFrameTime = performance.now();
+  animId = requestAnimationFrame(gameLoop);
+}
+
+function spawnBossGhost() {
+  const corners = [
+    { x: 55, y: 55 },
+    { x: canvas.width - 55, y: 55 },
+    { x: 55, y: canvas.height - 55 },
+    { x: canvas.width - 55, y: canvas.height - 55 }
+  ];
+  let bestCorner = corners[3];
+  let maxDist = -1;
+  corners.forEach(c => {
+    const d = Math.hypot(c.x - player.x, c.y - player.y);
+    if (d > maxDist) {
+      maxDist = d;
+      bestCorner = c;
+    }
+  });
+
+  bossGhost = {
+    x: bestCorner.x,
+    y: bestCorner.y,
+    r: 27,
+    speed: ghostBaseSpeed * 74,
+    phase: 0
+  };
+  spawnParticles(bossGhost.x, bossGhost.y, '#ef4444', 28);
+}
+
+function layoutAndShuffleTiles(announce = true) {
+  const totalCards = activePairs.length * 2;
+  const cols = 4;
+  const rows = Math.ceil(totalCards / cols);
+  const marginX = 48;
+  const marginY = 38;
+  const cellW = (canvas.width - marginX * 2) / cols;
+  const cellH = (canvas.height - marginY * 2) / rows;
+
+  const slots = [];
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      slots.push({
+        cx: marginX + cellW * (c + 0.5) + (Math.random() - 0.5) * 22,
+        cy: marginY + cellH * (r + 0.5) + (Math.random() - 0.5) * 16
+      });
+    }
+  }
+  const shuffledSlots = shuffleArray(slots);
+
+  const items = [];
+  activePairs.forEach(p => {
+    items.push({ pairId: p.id, kind: 'en', text: p.en });
+    items.push({ pairId: p.id, kind: 'jp', text: p.jp });
+  });
+  const shuffledItems = shuffleArray(items);
+
+  tiles = shuffledItems.map((item, i) => {
+    const slot = shuffledSlots[i];
+    ctx.font = 'bold 14px sans-serif';
+    const textW = ctx.measureText(item.text).width;
+    const w = Math.max(84, Math.min(156, textW + 24));
+    const h = 36;
+    return {
+      ...item,
+      x: slot.cx,
+      y: slot.cy,
+      w: w,
+      h: h,
+      cooldown: 0
+    };
+  });
+
+  if (announce && bannerTimer <= 0.2) {
+    showBanner('🔀 新しい単語が追加＆シャッフル！', '#fde047', 1.1);
+  }
+}
+
+function updateHud() {
+  document.getElementById('hud-char-icon').textContent = (selectedChar === 'chara2') ? '🧑' : '🐱';
+  document.getElementById('hud-life').textContent =
+    '❤️'.repeat(Math.max(0, life)) + '🖤'.repeat(Math.max(0, MAX_LIFE - life));
+  document.getElementById('hud-heal').textContent = `${clearedCount % 5} / 5`;
+  document.getElementById('hud-cleared').textContent = clearedCount;
+  document.getElementById('hud-total').textContent = totalTarget;
+  document.getElementById('hud-score').textContent = score;
+}
+
+function updateHoldingBar() {
+  const el = document.getElementById('holding-word');
+  if (!selectedEnId) {
+    el.textContent = '（まだ持っていません — 青い英単語に触れよう！）';
+    el.style.color = '#94a3b8';
+  } else {
+    const pair = activePairs.find(p => p.id === selectedEnId);
+    if (pair) {
+      el.textContent = `【 ${pair.en} 】 → 合う日本語を探そう！`;
+      el.style.color = '#fde047';
+    }
+  }
+}
+
+function spawnParticles(x, y, color, count = 14) {
+  for (let i = 0; i < count; i++) {
+    const ang = (Math.PI * 2 * i) / count + Math.random() * 0.4;
+    const spd = 60 + Math.random() * 140;
+    particles.push({
+      x, y,
+      vx: Math.cos(ang) * spd,
+      vy: Math.sin(ang) * spd,
+      life: 0.55,
+      color
+    });
+  }
+}
+
+function handleGhostHit(isBoss = false) {
+  playSfx('damage');
+  life--;
+  updateHud();
+
+  spawnParticles(player.x, player.y, '#ef4444', 22);
+
+  if (life <= 0) {
+    endGame(false);
+    return;
+  }
+
+  selectedEnId = null;
+  updateHoldingBar();
+  resetPositionsToStart();
+  player.invulnTimer = 2.0;
+  spawnParticles(player.x, player.y, '#fde047', 16);
+  layoutAndShuffleTiles(false);
+
+  const label = isBoss ? '👑 ボスお化け' : '👻 お化け';
+  showBanner(`${label}にやられた！スタート位置へ戻り単語をシャッフル！`, '#fca5a5', 1.8);
+}
+
+// ==========================================
+// メインループ
+// ==========================================
+function gameLoop(now) {
+  if (gameState !== 'playing') return;
+  const dt = Math.min(0.05, (now - lastFrameTime) / 1000);
+  lastFrameTime = now;
+
+  update(dt);
+  draw();
+
+  animId = requestAnimationFrame(gameLoop);
+}
+
+function update(dt) {
+  if (player.invulnTimer > 0) player.invulnTimer -= dt;
+  if (bannerTimer > 0) bannerTimer -= dt;
+
+  tiles.forEach(t => {
+    if (t.cooldown > 0) t.cooldown -= dt;
+  });
+
+  // 1. プレイヤー移動
+  let vx = 0;
+  let vy = 0;
+  if (keys['arrowleft'] || keys['a']) vx -= 1;
+  if (keys['arrowright'] || keys['d']) vx += 1;
+  if (keys['arrowup'] || keys['w']) vy -= 1;
+  if (keys['arrowdown'] || keys['s']) vy += 1;
+
+  if (vx !== 0 || vy !== 0) {
+    player.targetX = null;
+    player.targetY = null;
+    const len = Math.hypot(vx, vy);
+    vx = (vx / len) * player.speed;
+    vy = (vy / len) * player.speed;
+    player.x += vx * dt;
+    player.y += vy * dt;
+    if (vx !== 0) player.dirX = vx > 0 ? 1 : -1;
+    player.walkPhase += dt * 10;
+  } else if (player.targetX !== null && player.targetY !== null) {
+    const dx = player.targetX - player.x;
+    const dy = player.targetY - player.y;
+    const dist = Math.hypot(dx, dy);
+    if (dist > 5) {
+      player.x += (dx / dist) * player.speed * dt;
+      player.y += (dy / dist) * player.speed * dt;
+      if (Math.abs(dx) > 2) player.dirX = dx > 0 ? 1 : -1;
+      player.walkPhase += dt * 10;
+    } else {
+      player.targetX = null;
+      player.targetY = null;
+    }
+  }
+
+  player.x = Math.max(24, Math.min(canvas.width - 24, player.x));
+  player.y = Math.max(24, Math.min(canvas.height - 24, player.y));
+
+  // 2. タイルとの当たり判定
+  for (let i = 0; i < tiles.length; i++) {
+    const t = tiles[i];
+    if (t.cooldown > 0) continue;
+
+    const closestX = Math.max(t.x - t.w / 2, Math.min(player.x, t.x + t.w / 2));
+    const closestY = Math.max(t.y - t.h / 2, Math.min(player.y, t.y + t.h / 2));
+    const dist = Math.hypot(player.x - closestX, player.y - closestY);
+
+    if (dist < player.r - 2) {
+      handleTileTouch(t);
+      break;
+    }
+  }
+
+  // 3. お化け3体の追跡AI
+  const speedMult = isLastFiveBoost ? 1.22 : 1.0;
+
+  for (let idx = 0; idx < ghosts.length; idx++) {
+    const g = ghosts[idx];
+    g.phase += dt * (isLastFiveBoost ? 5.5 : 4);
+    let tx = player.x;
+    let ty = player.y;
+
+    if (g.type === 'intercept') {
+      tx += player.dirX * 45;
+    } else if (g.type === 'wave') {
+      tx += Math.cos(g.phase) * 55;
+      ty += Math.sin(g.phase) * 55;
+    }
+
+    const dx = tx - g.x;
+    const dy = ty - g.y;
+    const dist = Math.hypot(dx, dy);
+    if (dist > 1) {
+      g.x += (dx / dist) * g.speed * speedMult * dt;
+      g.y += (dy / dist) * g.speed * speedMult * dt;
+    }
+
+    ghosts.forEach((other, oIdx) => {
+      if (idx === oIdx) return;
+      const odx = g.x - other.x;
+      const ody = g.y - other.y;
+      const odist = Math.hypot(odx, ody);
+      if (odist > 0 && odist < 46) {
+        g.x += (odx / odist) * 40 * dt;
+        g.y += (ody / odist) * 40 * dt;
+      }
+    });
+
+    const hitDist = Math.hypot(player.x - g.x, player.y - g.y);
+    if (hitDist < player.r + g.r - 5 && player.invulnTimer <= 0) {
+      handleGhostHit(false);
+      return;
+    }
+  }
+
+  // 4. ボスお化けの追跡AI
+  if (bossGhost) {
+    bossGhost.phase += dt * 5;
+    const tx = player.x + player.dirX * 25;
+    const ty = player.y;
+    const dx = tx - bossGhost.x;
+    const dy = ty - bossGhost.y;
+    const dist = Math.hypot(dx, dy);
+
+    if (dist > 1) {
+      bossGhost.x += (dx / dist) * bossGhost.speed * 1.15 * dt;
+      bossGhost.y += (dy / dist) * bossGhost.speed * 1.15 * dt;
+    }
+
+    const hitDist = Math.hypot(player.x - bossGhost.x, player.y - bossGhost.y);
+    if (hitDist < player.r + bossGhost.r - 6 && player.invulnTimer <= 0) {
+      handleGhostHit(true);
+      return;
+    }
+  }
+
+  // 5. パーティクル更新
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    p.life -= dt;
+    if (p.life <= 0) particles.splice(i, 1);
+  }
+}
+
+function handleTileTouch(tile) {
+  if (tile.kind === 'en') {
+    if (selectedEnId !== tile.pairId) {
+      selectedEnId = tile.pairId;
+      playSfx('pick');
+      speakWord(tile.text);
+      spawnParticles(tile.x, tile.y, '#38bdf8', 10);
+      updateHoldingBar();
+    }
+    tile.cooldown = 0.45;
+  } else if (tile.kind === 'jp') {
+    if (!selectedEnId) {
+      tile.cooldown = 0.4;
+      return;
+    }
+
+    if (tile.pairId === selectedEnId) {
+      // 正解！（画面をフェードせず明るいまま続行）
+      score += 100;
+      clearedCount++;
+      spawnParticles(tile.x, tile.y, '#fde047', 22);
+
+      const remainingCount = totalTarget - clearedCount;
+
+      if (remainingCount === 5 && !isLastFiveBoost) {
+        isLastFiveBoost = true;
+        canvas.classList.add('last-five');
+        spawnBossGhost();
+
+        if (clearedCount % 5 === 0 && life < MAX_LIFE) {
+          life++;
+          spawnParticles(player.x, player.y, '#f472b6', 26);
+          playSfx('boss');
+          showBanner('💖 ライフ1復活！＆ 👑ラスト5問！ボスお化け出現！', '#fb923c', 2.2);
+        } else {
+          if (clearedCount % 5 === 0) score += 200;
+          playSfx('boss');
+          showBanner('👑 ラスト5問！ボスお化け出現＆スピードアップ！', '#fb923c', 2.1);
+        }
+      } else if (clearedCount % 5 === 0) {
+        if (life < MAX_LIFE) {
+          life++;
+          playSfx('heal');
+          spawnParticles(player.x, player.y, '#f472b6', 26);
+          showBanner('💖 5個正解ボーナス！ライフ1復活！', '#f472b6', 1.6);
+        } else {
+          playSfx('heal');
+          score += 200;
+          showBanner('✨ 5個正解＆ライフ満タンボーナス +200点！', '#4ade80', 1.5);
+        }
+      } else {
+        playSfx('match');
+        showBanner('🔀 新しい単語が追加＆シャッフル！', '#fde047', 1.1);
+      }
+
+      activePairs = activePairs.filter(p => p.id !== selectedEnId);
+      if (remainingPool.length > 0) {
+        activePairs.push(remainingPool.shift());
+      }
+      selectedEnId = null;
+      updateHud();
+      updateHoldingBar();
+
+      if (activePairs.length === 0) {
+        endGame(true);
+        return;
+      }
+
+      player.invulnTimer = Math.max(player.invulnTimer, 0.9);
+      layoutAndShuffleTiles(false);
+    } else {
+      // 不正解
+      playSfx('damage');
+      life--;
+      const curPair = activePairs.find(p => p.id === selectedEnId);
+      if (curPair && !missedWords.some(m => m.en === curPair.en)) {
+        missedWords.push(curPair);
+      }
+      spawnParticles(tile.x, tile.y, '#ef4444', 18);
+      showBanner(`❌ 違う日本語に触れた！ライフ -1（正解は「${curPair ? curPair.jp : ''}」）`, '#fca5a5', 1.5);
+
+      selectedEnId = null;
+      tile.cooldown = 1.0;
+      updateHud();
+      updateHoldingBar();
+
+      if (life <= 0) {
+        endGame(false);
+        return;
+      }
+    }
+  }
+}
+
+function endGame(isWin) {
+  gameState = 'ended';
+  if (animId) cancelAnimationFrame(animId);
+  bossGhost = null;
+  canvas.classList.remove('last-five');
+
+  const endOv = document.getElementById('endOverlay');
+  const title = document.getElementById('endTitle');
+  const msg = document.getElementById('endMsg');
+  const missBox = document.getElementById('miss-box');
+
+  if (isWin) {
+    title.textContent = '🎉 完全クリア！おめでとう！';
+    title.style.color = '#fde047';
+    msg.innerHTML = `重複なし全 ${totalTarget} 問のマッチングに成功しました！<br>最終スコア：<b>${score} 点</b>`;
+  } else {
+    title.textContent = '💔 ライフが0になった…！';
+    title.style.color = '#fca5a5';
+    msg.innerHTML = `クリア数：${clearedCount} / ${totalTarget} 問（スコア：${score} 点）<br>もう1回チャレンジしよう！`;
+  }
+
+  if (missedWords.length > 0) {
+    missBox.classList.remove('hidden');
+    missBox.innerHTML = '<b>📌 間違えた単語を復習しよう：</b><ul style="margin:6px 0 0; padding-left:20px;">' +
+      missedWords.map(m => `<li><b>${m.en}</b>：${m.jp}</li>`).join('') + '</ul>';
+  } else {
+    missBox.classList.add('hidden');
+  }
+
+  endOv.classList.remove('hidden');
+}
+
+// ==========================================
+// 描画処理
+// ==========================================
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  ctx.fillStyle = '#166534';
+  for (let y = 0; y < canvas.height; y += 60) {
+    ctx.fillRect(0, y, canvas.width, 30);
+  }
+
+  if (isLastFiveBoost) {
+    ctx.save();
+    ctx.fillStyle = 'rgba(254, 202, 202, 0.35)';
+    ctx.font = 'bold 13px sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText('👑 BOSS & LAST 5 SPURT!', canvas.width - 14, canvas.height - 10);
+    ctx.restore();
+  }
+
+  if (player.targetX !== null && player.targetY !== null) {
+    ctx.strokeStyle = 'rgba(253, 224, 71, 0.55)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(player.targetX, player.targetY, 10, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
+  tiles.forEach(t => {
+    const left = t.x - t.w / 2;
+    const top = t.y - t.h / 2;
+    const isSelected = (t.kind === 'en' && t.pairId === selectedEnId);
+
+    ctx.save();
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    roundRect(ctx, left + 2, top + 4, t.w, t.h, 10, true, false);
+
+    if (isSelected) {
+      ctx.fillStyle = '#fde047';
+      ctx.strokeStyle = '#ca8a04';
+    } else if (t.kind === 'en') {
+      ctx.fillStyle = '#dbeafe';
+      ctx.strokeStyle = '#2563eb';
+    } else {
+      ctx.fillStyle = '#ffedd5';
+      ctx.strokeStyle = '#ea580c';
+    }
+    ctx.lineWidth = isSelected ? 3 : 2;
+    roundRect(ctx, left, top, t.w, t.h, 10, true, true);
+
+    ctx.fillStyle = isSelected ? '#1e293b' : (t.kind === 'en' ? '#1e3a8a' : '#7c2d12');
+    ctx.font = 'bold 14px "UD デジタル 教科書体 NK-R", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(t.text, t.x, t.y + 1, t.w - 12);
+    ctx.restore();
+  });
+
+  drawPlayerCharacter(player);
+
+  ghosts.forEach(g => drawGhost(g));
+  if (bossGhost) drawBossGhost(bossGhost);
+
+  particles.forEach(p => {
+    ctx.globalAlpha = Math.max(0, p.life * 1.8);
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  });
+
+  if (bannerTimer > 0 && bannerText) {
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, bannerTimer * 1.5);
+    ctx.font = 'bold 14px sans-serif';
+    const bw = Math.min(canvas.width - 30, Math.max(280, ctx.measureText(bannerText).width + 36));
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.92)';
+    roundRect(ctx, canvas.width / 2 - bw / 2, 12, bw, 34, 999, true, false);
+    ctx.fillStyle = bannerColor;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(bannerText, canvas.width / 2, 29, bw - 20);
+    ctx.restore();
+  }
+}
+
+// キャッチ中ワード吹き出し共通描画
+function drawHoldingBubble(offsetY = -76) {
+  if (selectedEnId) {
+    const pair = activePairs.find(item => item.id === selectedEnId);
+    if (pair) {
+      ctx.font = 'bold 12px sans-serif';
+      const tw = ctx.measureText(pair.en).width + 16;
+      ctx.fillStyle = '#fef08a';
+      ctx.strokeStyle = '#ca8a04';
+      ctx.lineWidth = 2;
+      roundRect(ctx, -tw / 2, offsetY, tw, 22, 8, true, true);
+      ctx.fillStyle = '#1e293b';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(pair.en, 0, offsetY + 11);
+    }
+  }
+}
+
+// 選択された画像キャラクターの描画（影なし・キャラごとに最適サイズ）
+function drawPlayerCharacter(p) {
+  ctx.save();
+  const bob = Math.sin(p.walkPhase) * 2.0;
+  ctx.translate(p.x, p.y + bob);
+
+  // 2つ目のキャラは通路幅ギリギリ（高さ76px・最大幅74px）、1つ目の猫は96px・110px
+  const isChara2 = (selectedChar === 'chara2');
+  const targetH = isChara2 ? 76 : 96;
+  const maxW = isChara2 ? 74 : 110;
+
+  // キャッチ中の単語吹き出し（キャラの頭上にちょうど収まる高さ）
+  drawHoldingBubble(-(targetH / 2 + 28));
+
+  const img = CHAR_IMAGES[selectedChar] || CHAR_IMAGES.cat;
+  if (img && img.complete && img.naturalWidth > 0) {
+    const aspect = img.naturalWidth / img.naturalHeight;
+    let drawW = targetH * aspect;
+    let drawH = targetH;
+    if (drawW > maxW) {
+      drawW = maxW;
+      drawH = drawW / aspect;
+    }
+    ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
+  } else {
+    // 画像読み込み中のフォールバック表示
+    ctx.fillStyle = '#ffffff';
+    ctx.strokeStyle = '#64748b';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(0, 0, isChara2 ? 22 : 26, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.font = isChara2 ? '26px sans-serif' : '32px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(isChara2 ? '🧑' : '🐱', 0, 1);
+  }
+
+  ctx.restore();
+}
+
+function drawGhost(g) {
+  ctx.save();
+  const floatY = Math.sin(g.phase) * 3;
+  ctx.translate(g.x, g.y + floatY);
+
+  if (isLastFiveBoost) {
+    ctx.shadowColor = '#fb923c';
+    ctx.shadowBlur = 12;
+  }
+
+  ctx.globalAlpha = 0.88;
+  ctx.fillStyle = g.color;
+  ctx.strokeStyle = isLastFiveBoost ? '#ea580c' : '#334155';
+  ctx.lineWidth = isLastFiveBoost ? 2.5 : 2;
+
+  ctx.beginPath();
+  ctx.arc(0, -4, g.r, Math.PI, 0, false);
+  ctx.lineTo(g.r, 14);
+  ctx.lineTo(g.r * 0.5, 9);
+  ctx.lineTo(0, 14);
+  ctx.lineTo(-g.r * 0.5, 9);
+  ctx.lineTo(-g.r, 14);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.shadowBlur = 0;
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = isLastFiveBoost ? '#dc2626' : g.eyeColor;
+  ctx.beginPath();
+  ctx.arc(-5, -5, 3, 0, Math.PI * 2);
+  ctx.arc(5, -5, 3, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = '#1e293b';
+  ctx.beginPath();
+  ctx.arc(0, 3, 3.5, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.restore();
+}
+
+function drawBossGhost(b) {
+  ctx.save();
+  const floatY = Math.sin(b.phase) * 4;
+  ctx.translate(b.x, b.y + floatY);
+
+  ctx.shadowColor = '#ef4444';
+  ctx.shadowBlur = 18;
+
+  ctx.globalAlpha = 0.94;
+  ctx.fillStyle = '#3b0764';
+  ctx.strokeStyle = '#ef4444';
+  ctx.lineWidth = 3;
+
+  const r = b.r;
+  ctx.beginPath();
+  ctx.arc(0, -5, r, Math.PI, 0, false);
+  ctx.lineTo(r, 22);
+  ctx.lineTo(r * 0.6, 14);
+  ctx.lineTo(r * 0.2, 22);
+  ctx.lineTo(-r * 0.2, 14);
+  ctx.lineTo(-r * 0.6, 22);
+  ctx.lineTo(-r, 14);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.shadowBlur = 0;
+  ctx.globalAlpha = 1;
+
+  ctx.fillStyle = '#facc15';
+  ctx.strokeStyle = '#a16207';
+  ctx.lineWidth = 1.8;
+  ctx.beginPath();
+  ctx.moveTo(-14, -r - 2);
+  ctx.lineTo(-16, -r - 16);
+  ctx.lineTo(-7, -r - 9);
+  ctx.lineTo(0, -r - 19);
+  ctx.lineTo(7, -r - 9);
+  ctx.lineTo(16, -r - 16);
+  ctx.lineTo(14, -r - 2);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.fillStyle = '#fef08a';
+  ctx.beginPath();
+  ctx.arc(-8, -6, 4.8, 0, Math.PI * 2);
+  ctx.arc(8, -6, 4.8, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = '#dc2626';
+  ctx.beginPath();
+  ctx.arc(-8, -6, 2.5, 0, Math.PI * 2);
+  ctx.arc(8, -6, 2.5, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.strokeStyle = '#fca5a5';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.moveTo(-14, -13);
+  ctx.lineTo(-4, -9);
+  ctx.moveTo(14, -13);
+  ctx.lineTo(4, -9);
+  ctx.stroke();
+
+  ctx.fillStyle = '#ef4444';
+  ctx.beginPath();
+  ctx.ellipse(0, 7, 9, 5.5, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.restore();
+}
+
+function roundRect(ctx, x, y, w, h, r, fill, stroke) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+  if (fill) ctx.fill();
+  if (stroke) ctx.stroke();
+}
+</script>
+</body>
+</html>
